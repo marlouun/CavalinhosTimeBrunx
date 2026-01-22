@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrida de Vendas | Cavalinhos</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Fontes Divertidas do Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Animate.css para animações de entrada -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <link href="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/style.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+
+    <!-- Confetti JS para celebração -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<audio id="startup-sound" src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Sons/cavalo-ratinho.mp3" autoplay></audio>
+
+<nav class="navbar mb-4">
+    <div class="container-fluid position-relative justify-content-center">
+        <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="position-absolute start-0 ms-3 top-50 translate-middle-y animate__animated animate__rubberBand">
+        <span class="navbar-brand mb-0 h1 animate__animated animate__pulse animate__infinite">🏁 GP do Atacado 🏁</span>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="narrador-box animate__animated animate__bounceInDown">
+                <p class="narrador-texto" id="narracao-texto">Carregando as emoções...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading" class="text-center my-5">
+        <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status"></div>
+        <p class="mt-2 text-white fw-bold fs-4" style="font-family: 'Bangers'">Aquecendo os motores...</p>
+    </div>
+
+    <div id="dashboard-content" style="display: none;" class="animate__animated animate__fadeIn">
+        <!-- KPIs -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card p-3 h-100 kpi-card-custom border-success">
+                    <div class="kpi-titulo">💰 Faturamento Total</div>
+                    <div class="kpi-valor text-success" id="kpi-total">R$ 0,00</div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card p-3 h-100 kpi-card-custom border-warning">
+                    <div class="kpi-titulo">🏆 Líder da Prova</div>
+                    <div class="kpi-valor text-warning" id="kpi-top-vendedor">-</div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card p-3 h-100 kpi-card-custom border-primary">
+                    <div class="kpi-titulo">📅 Atualização</div>
+                    <div class="kpi-valor text-primary" style="font-size: 1.5rem; margin-top: 10px;" id="data-atualizacao">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Corrida (Largura Total) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card p-4 h-100">
+                    <h3 class="text-center mb-4" style="color: #4CAF50; text-shadow: 2px 2px 0 #000;">🏇 A Grande Corrida</h3>
+                    <div class="pista-container" id="pista-corrida">
+                        <div class="linha-chegada"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Pizza e Tabela -->
+        <div class="row">
+            <!-- Gráfico de Pizza -->
+            <div class="col-lg-6 mb-4">
+                <div class="card p-4 h-100">
+                    <h3 class="text-center mb-4" style="color: #FF6384; text-shadow: 2px 2px 0 #000;">🍕 Fatias do Mercado</h3>
+                    <div style="position: relative; height:350px; width:100%">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Classificação -->
+            <div class="col-lg-6 mb-4">
+                <div class="card p-4 h-100">
+                    <h3 class="text-center mb-4" style="color: #333;">📊 Tabela de Classificação</h3>
+                    <div class="table-responsive">
+                        <table class="table align-middle" id="tabela-classificacao">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="text-center" style="width: 80px;">Pos</th>
+                                    <th scope="col">Jóquei</th>
+                                    <th scope="col" class="text-end">Faturamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Linhas geradas via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Painel Lateral (Offcanvas) do Jogador -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="painelPerfil" aria-labelledby="painelPerfilLabel">
+    <div class="offcanvas-header" style="background: linear-gradient(90deg, #ff9900 0%, #ff5e00 100%); color: white;">
+        <h5 class="offcanvas-title" id="painelPerfilLabel" style="font-family: 'Bangers'; letter-spacing: 1px; font-size: 1.5rem;">Perfil do Jóquei</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body text-center" style="background-color: #f8f9fa;">
+
+        <div class="mb-4 position-relative d-inline-block">
+            <img id="perfil-img" src="" class="rounded-circle border border-4 border-dark shadow" style="width: 150px; height: 150px; object-fit: cover; background: white;">
+            <span id="perfil-posicao-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-2 border-white" style="font-size: 1.2rem;">
+                1º
+            </span>
+        </div>
+
+        <h2 id="perfil-nome" class="mb-1" style="font-family: 'Bangers'; color: #333;">Nome do Jogador</h2>
+        <h4 id="perfil-time" class="mb-4 text-muted" style="font-family: 'Fredoka';">Time</h4>
+
+        <div class="card mb-3 border-primary shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-primary" style="font-family: 'Bangers';">Situação na Pista</h5>
+                <p class="card-text fs-5" id="perfil-frase-situacao" style="font-family: 'Fredoka';">Frase sobre a posição...</p>
+            </div>
+        </div>
+
+        <div class="card border-success shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-success" style="font-family: 'Bangers';">Motivação do Dia</h5>
+                <p class="card-text fst-italic fs-5" id="perfil-frase-motivacao" style="font-family: 'Fredoka';">"Frase motivacional aqui..."</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    Chart.register(ChartDataLabels);
+
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQv0825p9dWQwdv4mntwipMo7-15j6c2KfMTRUXSmaINt2O5BkhNEjOhuxyCGd22J1Le9dPXcWuU_Ja/pub?gid=0&single=true&output=csv';
+
+    let totalParticipantes = 0;
+
+    async function initDashboard() {
+        try {
+            const audio = document.getElementById('startup-sound');
+            if (audio) {
+                audio.play().catch(e => console.log("Autoplay bloqueado pelo navegador. Interaja com a página para ouvir.", e));
+            }
+
+            let response;
+            try {
+                response = await fetch(`https://corsproxy.io/?${encodeURIComponent(sheetUrl)}`);
+                if (!response.ok) throw new Error('Proxy 1 falhou');
+            } catch (e) {
+                response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(sheetUrl)}`);
+            }
+
+            if (!response.ok) throw new Error('Não foi possível acessar a planilha');
+            const data = await response.text();
+            const rows = data.split('\n');
+
+            let totalFaturado = 0;
+            let dadosVendedores = [];
+
+            rows.forEach(row => {
+                if (!row || row.trim() === '') return;
+                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+
+                let nome = cols[7] ? cols[7].replace(/"/g, '').trim() : "";
+                let valorString = cols[8] ? cols[8].replace(/"/g, '') : "0";
+
+                valorString = valorString.replace('R$', '').trim();
+                if (valorString.includes(',') && valorString.includes('.')) {
+                    valorString = valorString.replace(/\./g, '').replace(',', '.');
+                } else if (valorString.includes(',')) {
+                    valorString = valorString.replace(',', '.');
+                }
+                const valor = parseFloat(valorString);
+
+                if (nome && nome.length > 2 && !isNaN(valor) && valor > 0) {
+                    dadosVendedores.push({ nome: nome, valor: valor });
+                    totalFaturado += valor;
+                }
+            });
+
+            if (dadosVendedores.length === 0) throw new Error("Nenhum dado válido encontrado.");
+
+            dadosVendedores.sort((a, b) => b.valor - a.valor);
+            totalParticipantes = dadosVendedores.length;
+
+            const lider = dadosVendedores[0];
+            const ultimo = dadosVendedores[dadosVendedores.length - 1];
+            const meio = dadosVendedores.length > 2 ? dadosVendedores[Math.floor(dadosVendedores.length / 2)] : null;
+
+            document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('kpi-top-vendedor').innerText = lider ? lider.nome : "-";
+
+            const hoje = new Date();
+            document.getElementById('data-atualizacao').innerText = hoje.toLocaleDateString() + " " + hoje.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+            renderizarCorrida(dadosVendedores);
+            renderizarTabela(dadosVendedores);
+
+            const ctxPie = document.getElementById('pieChart').getContext('2d');
+            const backgroundColorsPizza = dadosVendedores.map(v => getTeamPattern(ctxPie, v.nome));
+
+            renderPieChart(
+                dadosVendedores.map(d => d.nome),
+                dadosVendedores.map(d => d.valor),
+                backgroundColorsPizza
+            );
+
+            gerarNarracao(lider, ultimo, meio);
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+
+            dispararConfetes();
+
+        } catch (error) {
+            console.error("Erro:", error);
+            document.getElementById('loading').innerHTML = `<div class="alert alert-danger">Erro: ${error.message}</div>`;
+        }
+    }
+
+    // --- Lógica do Perfil Lateral ---
+    function abrirPerfil(nome, valor, index) {
+        const posicao = index + 1;
+        const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        // 1. Identificar Time
+        let time = "Time Desconhecido";
+        if (n.includes('everton')) time = "Corinthians (Timão)";
+        else if (n.includes('maevelim')) time = "Botafogo (Fogão)";
+        else if (n.includes('emily')) time = "Palmeiras (Verdão)";
+        else if (n.includes('dariele')) time = "Fluminense (Flu)";
+        else if (n.includes('bruno')) time = "Flamengo (Mengão)";
+        else if (n.includes('marlon')) time = "São Paulo (Tricolor)";
+
+        // 2. Frase de Situação (Posição)
+        let fraseSituacao = "";
+        let frasesMotivacionais = [];
+
+        if (posicao === 1) {
+            fraseSituacao = "👑 O REI DA PISTA! Olhando todo mundo pelo retrovisor!";
+            frasesMotivacionais = [
+                "O difícil não é chegar no topo, é se manter lá. Continue acelerando!",
+                "Você é o alvo agora. Não olhe para trás, olhe para a linha de chegada!",
+                "Liderança é atitude. Continue inspirando o time!",
+                "O sucesso é alugado, e o aluguel vence todo dia. Pague o preço!",
+                "Mantenha a humildade e a fome de vencer. O topo é seu lugar!",
+                "Quem está na frente dita o ritmo. Mostre como se faz!",
+                "A vista é linda daqui de cima, mas não tire os olhos da pista.",
+                "Campeão não é quem vence uma vez, é quem vence sempre. Foco!",
+                "Você está voando! Mantenha o pé no acelerador.",
+                "A concorrência está babando, mas a taça é sua se continuar assim!"
+            ];
+        } else if (posicao <= 4) {
+            fraseSituacao = "🔥 No G4! A liderança é logo ali, acelera!";
+            frasesMotivacionais = [
+                "Você está na elite! Falta pouco para o topo.",
+                "A consistência é a chave. Mantenha o ritmo e ataque na hora certa.",
+                "Os campeões são feitos de garra. Você está no caminho certo!",
+                "Mire na lua. Se errar, ainda estará entre as estrelas.",
+                "Não diminua a meta, aumente o esforço. O líder que se cuide!",
+                "Lugar de craque é no pódio. Não aceite menos que isso.",
+                "Você está respirando no cangote do líder. Vai pra cima!",
+                "A diferença entre o 2º e o 1º é apenas um sprint final.",
+                "Mantenha o foco. O troféu está ao alcance das mãos.",
+                "Você já provou que é bom. Agora prove que é o melhor."
+            ];
+        } else if (posicao > totalParticipantes - 4) {
+            fraseSituacao = "⚠️ Alerta Z4! Hora de ligar o turbo e sair dessa!";
+            frasesMotivacionais = [
+                "Não importa como você começa, mas sim como termina.",
+                "O fracasso é apenas uma oportunidade para recomeçar com mais inteligência.",
+                "A corrida só acaba na bandeirada. Ainda dá tempo de virar o jogo!",
+                "Levanta a cabeça! Sua maior vitória será a sua virada.",
+                "Foguete não tem ré, mas às vezes precisa de um ajuste na rota. Vamos!",
+                "Acredite no seu potencial, a recuperação começa agora!",
+                "O fundo do poço tem mola. Use-a para subir!",
+                "Transforme a pressão em combustível. Mostre sua força!",
+                "Não é sobre quantas vezes você cai, mas quantas levanta.",
+                "Ainda tem muita pista pela frente. Acelera e surpreenda!"
+            ];
+        } else {
+            fraseSituacao = "🚗 No meio do pelotão! É hora de ousar e buscar posições!";
+            frasesMotivacionais = [
+                "Saia da média! Você tem potencial para muito mais.",
+                "O meio da tabela é confortável, mas o topo é onde a mágica acontece.",
+                "Um passo de cada vez. A subida é constante.",
+                "Transforme sua vontade em potência. Acelera!",
+                "Não se contente com o 'bom'. Busque o 'extraordinário'.",
+                "A diferença entre o possível e o impossível está na sua determinação.",
+                "Chega de passeio! Hora de ligar o modo turbo.",
+                "Você não treinou para ser coadjuvante. Assuma o protagonismo!",
+                "Surpreenda a todos. Ninguém espera um ataque agora!",
+                "O conforto é o inimigo do progresso. Vamos subir!"
+            ];
+        }
+
+        // 3. Sorteia Frase Motivacional Específica
+        const fraseMotivacao = frasesMotivacionais[Math.floor(Math.random() * frasesMotivacionais.length)];
+
+        // 4. Preencher HTML
+        document.getElementById('perfil-nome').innerText = nome;
+        document.getElementById('perfil-time').innerText = time;
+        document.getElementById('perfil-posicao-badge').innerText = posicao + "º";
+        document.getElementById('perfil-frase-situacao').innerText = fraseSituacao;
+        document.getElementById('perfil-frase-motivacao').innerText = fraseMotivacao;
+
+        // Imagem
+        let primeiroNome = nome.trim().split(' ')[0];
+        primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+        primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const imgUrl = `Images/Imagens_Cavalinhos/${primeiroNome}.png`;
+
+        const imgEl = document.getElementById('perfil-img');
+        imgEl.src = imgUrl;
+        imgEl.onerror = function() { this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'; };
+
+        // 5. Abrir Offcanvas
+        var bsOffcanvas = new bootstrap.Offcanvas(document.getElementById('painelPerfil'));
+        bsOffcanvas.show();
+    }
+
+    function getTeamPattern(ctx, nome) {
+        const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        let colors = [];
+
+        if (n.includes('everton')) colors = ['#000000', '#FFFFFF'];
+        else if (n.includes('maevelim')) colors = ['#000000', '#FFFFFF'];
+        else if (n.includes('emily')) colors = ['#006437', '#FFFFFF'];
+        else if (n.includes('dariele')) colors = ['#831D1C', '#00913C', '#FFFFFF'];
+        else if (n.includes('bruno')) colors = ['#C3281E', '#000000'];
+        else if (n.includes('marlon')) colors = ['#FE0000', '#FFFFFF', '#000000'];
+        else {
+             const defaultColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+             return defaultColors[Math.floor(Math.random() * defaultColors.length)];
+        }
+
+        const patternCanvas = document.createElement('canvas');
+        const size = 20;
+        patternCanvas.width = size;
+        patternCanvas.height = size;
+        const pCtx = patternCanvas.getContext('2d');
+        const step = size / colors.length;
+
+        colors.forEach((color, i) => {
+            pCtx.fillStyle = color;
+            pCtx.fillRect(i * step, 0, step, size);
+        });
+
+        return ctx.createPattern(patternCanvas, 'repeat');
+    }
+
+    function dispararConfetes() {
+        var duration = 3 * 1000;
+        var animationEnd = Date.now() + duration;
+        var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+        function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+        var interval = setInterval(function() {
+          var timeLeft = animationEnd - Date.now();
+          if (timeLeft <= 0) return clearInterval(interval);
+          var particleCount = 50 * (timeLeft / duration);
+          confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+          confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+        }, 250);
+    }
+
+    function renderizarCorrida(vendedores) {
+        const container = document.getElementById('pista-corrida');
+        container.innerHTML = '<div class="linha-chegada"></div>';
+        const maiorValor = vendedores.length > 0 ? vendedores[0].valor : 1;
+
+        vendedores.forEach((vendedor, index) => {
+            let porcentagem = (vendedor.valor / maiorValor) * 100;
+            if(porcentagem > 95) porcentagem = 95;
+
+            let primeiroNome = vendedor.nome.trim().split(' ')[0];
+            primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+            primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const nomeArquivo = primeiroNome + '.png';
+
+            // Inicializa com left: 0% para animação
+            const raiaHtml = `
+                <div class="raia">
+                    <div class="nome-vendedor" title="${vendedor.nome}">${vendedor.nome}</div>
+                    <div class="trilho">
+                        <div class="cavalinho-wrapper" id="cavalinho-${index}" style="left: 0%; cursor: pointer;"
+                             onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
+                            <div class="valor-atual">${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumSignificantDigits: 3 })}</div>
+                            <img src="Images/Imagens_Cavalinhos/${nomeArquivo}" class="avatar-img" alt="${vendedor.nome}"
+                                 onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', raiaHtml);
+
+            // Dispara a animação após um breve delay
+            setTimeout(() => {
+                const el = document.getElementById(`cavalinho-${index}`);
+                if(el) el.style.left = `${porcentagem}%`;
+            }, 100 + (index * 50)); // Pequeno delay escalonado para efeito visual
+        });
+    }
+
+    function renderizarTabela(vendedores) {
+        const tbody = document.querySelector('#tabela-classificacao tbody');
+        tbody.innerHTML = '';
+
+        vendedores.forEach((vendedor, index) => {
+            const posicao = index + 1;
+            let primeiroNome = vendedor.nome.trim().split(' ')[0];
+            primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+            primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const nomeArquivo = primeiroNome + '.png';
+
+            let badgeColor = '#6c757d';
+            if (posicao <= 4) badgeColor = '#28a745';
+            else if (posicao > vendedores.length - 4) badgeColor = '#dc3545';
+
+            const row = `
+                <tr style="cursor: pointer;" onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
+                    <td class="text-center">
+                        <span class="posicao-badge" style="background-color: ${badgeColor}">${posicao}º</span>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="Images/Imagens_Cavalinhos/${nomeArquivo}"
+                                 class="rounded-circle border border-2 border-dark me-3"
+                                 style="width: 45px; height: 45px; object-fit: cover; background: #fff;"
+                                 onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
+                            <span class="fw-bold fs-5" style="font-family: 'Bangers'; letter-spacing: 1px;">${vendedor.nome}</span>
+                        </div>
+                    </td>
+                    <td class="text-end fw-bold fs-5" style="font-family: 'Fredoka'; color: #333;">
+                        ${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    function gerarNarracao(lider, ultimo, meio) {
+        if (!lider) return;
+        let frases = [
+            `OLHA O QUE ELE FEZ! ${lider.nome} disparou na liderança e não quer saber de conversa!`,
+            `Haja coração, amigo! ${lider.nome} está voando baixo na pista!`,
+            `É tetra? Não, é ${lider.nome} assumindo a ponta com autoridade!`,
+            `Quem segura ${lider.nome}? O motor tá turbinado hoje!`,
+            `Lá vem ${lider.nome}, descendo a ladeira e atropelando a concorrência!`,
+            `Pode isso, Arnaldo? ${lider.nome} tá jogando muito!`,
+            `Alô, mamãe! ${lider.nome} tá na frente e mandou avisar que hoje tem!`,
+            `Apertem os cintos! ${lider.nome} ligou o nitro!`,
+            `Que arrancada espetacular de ${lider.nome}! Ninguém pega!`,
+            `Segura o homem! ${lider.nome} tá impossível hoje!`,
+            `E lá atrás... ${ultimo.nome} vem num ritmo de passeio no parque com a tartaruga! 🐢`,
+            `Atenção ${ultimo.nome}! A tartaruga tá pedindo passagem!`,
+            `Será que ${ultimo.nome} esqueceu de tirar o freio de mão?`,
+            `Alguém avisa o ${ultimo.nome} que a corrida já começou!`,
+            `Vixi! ${ultimo.nome} tá mais devagar que internet discada!`
+        ];
+        if (meio) {
+            frases.push(
+                `No pelotão do meio, ${meio.nome} segue firme tentando buscar os líderes!`,
+                `Olha o ${meio.nome} ali na "meiuca", estudando a melhor hora de atacar!`,
+                `Nem em primeiro, nem em último: ${meio.nome} mantém a regularidade no meio da tabela.`,
+                `A briga tá boa no meio do grid com ${meio.nome} disputando posição!`
+            );
+        }
+        const fraseSorteada = frases[Math.floor(Math.random() * frases.length)];
+        document.getElementById('narracao-texto').innerText = fraseSorteada;
+    }
+
+    function renderPieChart(labels, data, backgroundColors) {
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        const chartStatus = Chart.getChart("pieChart");
+        if (chartStatus != undefined) chartStatus.destroy();
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    hoverOffset: 4,
+                    borderColor: '#000',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 15, font: { size: 14, family: 'Fredoka' }, color: '#333' }
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        textStrokeColor: '#000',
+                        textStrokeWidth: 4,
+                        font: { weight: 'bold', size: 16, family: 'Fredoka' },
+                        formatter: (value, ctx) => {
+                            let sum = 0;
+                            let dataArr = ctx.chart.data.datasets[0].data;
+                            dataArr.map(data => { sum += data; });
+                            let percentage = (value * 100 / sum).toFixed(1) + "%";
+                            return percentage;
+                        },
+                        display: function(context) {
+                            var dataset = context.dataset;
+                            var value = dataset.data[context.dataIndex];
+                            var total = dataset.data.reduce((a, b) => a + b, 0);
+                            var percentage = (value / total) * 100;
+                            return percentage > 5;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    window.onload = initDashboard;
+</script>
+</body>
+</html>
