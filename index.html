@@ -28,8 +28,9 @@
 <audio id="startup-sound" src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Sons/cavalo-ratinho.mp3" autoplay></audio>
 
 <nav class="navbar mb-4">
-    <div class="container-fluid position-relative justify-content-center">
-        <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="position-absolute start-0 ms-3 top-50 translate-middle-y animate__animated animate__rubberBand">
+    <div class="container-fluid d-flex flex-column flex-md-row justify-content-center align-items-center position-relative">
+        <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-none d-md-block position-absolute start-0 ms-3 top-50 translate-middle-y animate__animated animate__rubberBand">
+        <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-block d-md-none mb-2 animate__animated animate__rubberBand">
         <span class="navbar-brand mb-0 h1 animate__animated animate__pulse animate__infinite">🏁 GP do Atacado 🏁</span>
     </div>
 </nav>
@@ -118,6 +119,12 @@
         </div>
     </div>
 </div>
+
+<footer class="text-center py-3 mt-4">
+    <p class="mb-0 text-white fw-bold" style="font-family: 'Fredoka'; text-shadow: 1px 1px 2px #000;">
+        &copy; 2024 Todos os direitos reservados - Desenvolvido por Marlon
+    </p>
+</footer>
 
 <!-- Painel Lateral (Offcanvas) do Jogador -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="painelPerfil" aria-labelledby="painelPerfilLabel">
