@@ -337,7 +337,7 @@
         let primeiroNome = nome.trim().split(' ')[0];
         primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
         primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const imgUrl = `Images/Imagens_Cavalinhos/${primeiroNome}.png`;
+        const imgUrl = `ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Imagens_Cavalinhos/${primeiroNome}.png`;
 
         const imgEl = document.getElementById('perfil-img');
         imgEl.src = imgUrl;
@@ -414,7 +414,7 @@
                         <div class="cavalinho-wrapper" id="cavalinho-${index}" style="left: 0%; cursor: pointer;"
                              onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
                             <div class="valor-atual">${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumSignificantDigits: 3 })}</div>
-                            <img src="Images/Imagens_Cavalinhos/${nomeArquivo}" class="avatar-img" alt="${vendedor.nome}"
+                            <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Imagens_Cavalinhos/${nomeArquivo}" class="avatar-img" alt="${vendedor.nome}"
                                  onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
                         </div>
                     </div>
@@ -452,7 +452,7 @@
                     </td>
                     <td>
                         <div class="d-flex align-items-center">
-                            <img src="Images/Imagens_Cavalinhos/${nomeArquivo}"
+                            <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Imagens_Cavalinhos/${nomeArquivo}"
                                  class="rounded-circle border border-2 border-dark me-3"
                                  style="width: 45px; height: 45px; object-fit: cover; background: #fff;"
                                  onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
