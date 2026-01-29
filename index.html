@@ -171,14 +171,10 @@
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?output=csv';
 
     let totalParticipantes = 0;
+    let chartInstance = null; // Variável global para o gráfico
 
-    async function initDashboard() {
+    async function fetchData() {
         try {
-            const audio = document.getElementById('startup-sound');
-            if (audio) {
-                audio.play().catch(e => console.log("Autoplay bloqueado pelo navegador. Interaja com a página para ouvir.", e));
-            }
-
             let response;
             try {
                 response = await fetch(`https://corsproxy.io/?${encodeURIComponent(sheetUrl)}`);
@@ -221,39 +217,106 @@
             dadosVendedores.sort((a, b) => b.valor - a.valor);
             totalParticipantes = dadosVendedores.length;
 
-            const lider = dadosVendedores[0];
-            const ultimo = dadosVendedores[dadosVendedores.length - 1];
-            const meio = dadosVendedores.length > 2 ? dadosVendedores[Math.floor(dadosVendedores.length / 2)] : null;
-
-            document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById('kpi-top-vendedor').innerText = lider ? lider.nome : "-";
-
-            const hoje = new Date();
-            document.getElementById('data-atualizacao').innerText = hoje.toLocaleDateString() + " " + hoje.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-            renderizarCorrida(dadosVendedores);
-            renderizarTabela(dadosVendedores);
-
-            const ctxPie = document.getElementById('pieChart').getContext('2d');
-            const backgroundColorsPizza = dadosVendedores.map(v => getTeamPattern(ctxPie, v.nome));
-
-            renderPieChart(
-                dadosVendedores.map(d => d.nome),
-                dadosVendedores.map(d => d.valor),
-                backgroundColorsPizza
-            );
-
-            gerarNarracao(lider, ultimo, meio);
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'block';
-
-            dispararConfetes();
-
+            return { dadosVendedores, totalFaturado };
         } catch (error) {
-            console.error("Erro:", error);
-            document.getElementById('loading').innerHTML = `<div class="alert alert-danger">Erro: ${error.message}</div>`;
+            console.error("Erro ao buscar dados:", error);
+            return null;
         }
+    }
+
+    async function updateDashboard() {
+        const result = await fetchData();
+        if (!result) return;
+
+        const { dadosVendedores, totalFaturado } = result;
+        const lider = dadosVendedores[0];
+        const ultimo = dadosVendedores[dadosVendedores.length - 1];
+        const meio = dadosVendedores.length > 2 ? dadosVendedores[Math.floor(dadosVendedores.length / 2)] : null;
+
+        // Atualiza KPIs
+        document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        document.getElementById('kpi-top-vendedor').innerText = lider ? lider.nome : "-";
+
+        const hoje = new Date();
+        document.getElementById('data-atualizacao').innerText = hoje.toLocaleDateString() + " " + hoje.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        // Atualiza Corrida e Tabela
+        renderizarCorrida(dadosVendedores);
+        renderizarTabela(dadosVendedores);
+
+        // Atualiza Gráfico
+        const ctxPie = document.getElementById('pieChart').getContext('2d');
+        const backgroundColorsPizza = dadosVendedores.map(v => getTeamPattern(ctxPie, v.nome));
+        renderPieChart(
+            dadosVendedores.map(d => d.nome),
+            dadosVendedores.map(d => d.valor),
+            backgroundColorsPizza
+        );
+
+        // Atualiza Narração (opcional, pode ser irritante se mudar toda hora)
+        // gerarNarracao(lider, ultimo, meio);
+    }
+
+    // --- Função de Auto Scroll ---
+    function iniciarAutoScroll() {
+        let scrollDirection = 1; // 1 para baixo, -1 para cima
+        let scrollSpeed = 1; // Velocidade do scroll
+        let isPaused = false;
+
+        function scrollStep() {
+            if (isPaused) return;
+
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            const currentScroll = window.scrollY;
+
+            if (scrollDirection === 1 && currentScroll >= maxScroll - 2) {
+                // Chegou no fim
+                isPaused = true;
+                setTimeout(() => {
+                    scrollDirection = -1;
+                    isPaused = false;
+                    requestAnimationFrame(scrollStep);
+                }, 5000); // Pausa de 5s no fim
+            } else if (scrollDirection === -1 && currentScroll <= 2) {
+                // Chegou no topo
+                isPaused = true;
+                setTimeout(() => {
+                    scrollDirection = 1;
+                    isPaused = false;
+                    requestAnimationFrame(scrollStep);
+                }, 5000); // Pausa de 5s no topo
+            } else {
+                window.scrollBy(0, scrollDirection * scrollSpeed);
+                requestAnimationFrame(scrollStep);
+            }
+        }
+
+        // Inicia o loop
+        requestAnimationFrame(scrollStep);
+    }
+
+    async function initDashboard() {
+        const audio = document.getElementById('startup-sound');
+        if (audio) {
+            audio.play().catch(e => console.log("Autoplay bloqueado pelo navegador. Interaja com a página para ouvir.", e));
+        }
+
+        // Primeira carga
+        await updateDashboard();
+
+        // Mostra o dashboard
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('dashboard-content').style.display = 'block';
+
+        // Dispara confetes na primeira vez
+        dispararConfetes();
+        gerarNarracao(null, null, null); // Inicializa narração se necessário, ou chame dentro do updateDashboard com cuidado
+
+        // Inicia o Auto Scroll
+        iniciarAutoScroll();
+
+        // Configura atualização automática a cada 30 segundos (30000 ms)
+        setInterval(updateDashboard, 30000);
     }
 
     // --- Lógica do Perfil Lateral ---
@@ -478,7 +541,12 @@
     }
 
     function gerarNarracao(lider, ultimo, meio) {
-        if (!lider) return;
+        if (!lider && !ultimo && !meio) {
+             // Se chamado sem argumentos, tenta pegar do DOM ou apenas retorna
+             // Aqui vamos apenas garantir que não quebre
+             return;
+        }
+
         let frases = [
             `OLHA O QUE ELE FEZ! ${lider.nome} disparou na liderança e não quer saber de conversa!`,
             `Haja coração, amigo! ${lider.nome} está voando baixo na pista!`,
@@ -510,10 +578,13 @@
 
     function renderPieChart(labels, data, backgroundColors) {
         const ctx = document.getElementById('pieChart').getContext('2d');
-        const chartStatus = Chart.getChart("pieChart");
-        if (chartStatus != undefined) chartStatus.destroy();
 
-        new Chart(ctx, {
+        // Destrói o gráfico anterior se existir
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: labels,
