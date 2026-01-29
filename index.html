@@ -122,7 +122,7 @@
 
 <footer class="text-center py-3 mt-4">
     <p class="mb-0 text-white fw-bold" style="font-family: 'Fredoka'; text-shadow: 1px 1px 2px #000;">
-        &copy; 2026 Todos os direitos reservados - Desenvolvido por Marlon
+        &copy; 2024 Todos os direitos reservados - Desenvolvido por Marlon
     </p>
 </footer>
 
@@ -167,7 +167,8 @@
 <script>
     Chart.register(ChartDataLabels);
 
-    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQv0825p9dWQwdv4mntwipMo7-15j6c2KfMTRUXSmaINt2O5BkhNEjOhuxyCGd22J1Le9dPXcWuU_Ja/pub?gid=0&single=true&output=csv';
+    // Link atualizado para a nova planilha e forçando saída CSV
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?output=csv';
 
     let totalParticipantes = 0;
 
@@ -197,8 +198,9 @@
                 if (!row || row.trim() === '') return;
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
-                let nome = cols[7] ? cols[7].replace(/"/g, '').trim() : "";
-                let valorString = cols[8] ? cols[8].replace(/"/g, '') : "0";
+                // Ajustado para ler Coluna A (índice 0) e Coluna B (índice 1)
+                let nome = cols[0] ? cols[0].replace(/"/g, '').trim() : "";
+                let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
 
                 valorString = valorString.replace('R$', '').trim();
                 if (valorString.includes(',') && valorString.includes('.')) {
