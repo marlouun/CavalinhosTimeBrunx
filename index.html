@@ -422,13 +422,23 @@
     function getTeamPattern(ctx, nome) {
         const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         let colors = [];
+        let horizontal = false; // Flag para listras horizontais
 
         if (n.includes('everton')) colors = ['#000000', '#FFFFFF'];
-        else if (n.includes('maevelim')) colors = ['#000000', '#FFFFFF'];
+        else if (n.includes('maevelim')) {
+            colors = ['#000000', '#FFFFFF'];
+            horizontal = true; // Maevelim (Botafogo) com listras horizontais
+        }
         else if (n.includes('emily')) colors = ['#006437', '#FFFFFF'];
         else if (n.includes('dariele')) colors = ['#831D1C', '#00913C', '#FFFFFF'];
-        else if (n.includes('bruno')) colors = ['#C3281E', '#000000'];
-        else if (n.includes('marlon')) colors = ['#FE0000', '#FFFFFF', '#000000'];
+        else if (n.includes('bruno')) {
+            colors = ['#C3281E', '#000000'];
+            horizontal = true; // Bruno (Flamengo) com listras horizontais
+        }
+        else if (n.includes('marlon')) {
+            colors = ['#FE0000', '#FFFFFF', '#000000'];
+            horizontal = true; // Marlon (São Paulo) com listras horizontais
+        }
         else {
              const defaultColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
              return defaultColors[Math.floor(Math.random() * defaultColors.length)];
@@ -443,7 +453,13 @@
 
         colors.forEach((color, i) => {
             pCtx.fillStyle = color;
-            pCtx.fillRect(i * step, 0, step, size);
+            if (horizontal) {
+                // Desenha listras horizontais
+                pCtx.fillRect(0, i * step, size, step);
+            } else {
+                // Desenha listras verticais (padrão)
+                pCtx.fillRect(i * step, 0, step, size);
+            }
         });
 
         return ctx.createPattern(patternCanvas, 'repeat');
