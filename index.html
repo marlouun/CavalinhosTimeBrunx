@@ -253,8 +253,8 @@
             backgroundColorsPizza
         );
 
-        // Atualiza Narração (opcional, pode ser irritante se mudar toda hora)
-        // gerarNarracao(lider, ultimo, meio);
+        // Atualiza Narração
+        gerarNarracao(lider, ultimo, meio);
     }
 
     // --- Função de Auto Scroll ---
@@ -310,7 +310,6 @@
 
         // Dispara confetes na primeira vez
         dispararConfetes();
-        gerarNarracao(null, null, null); // Inicializa narração se necessário, ou chame dentro do updateDashboard com cuidado
 
         // Inicia o Auto Scroll
         iniciarAutoScroll();
