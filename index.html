@@ -9,19 +9,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <link href="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/style.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
-<audio id="startup-sound" src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Sons/cavalo-ratinho.mp3"></audio>
+<audio id="startup-sound" src="assets/Sons/cavalo-ratinho.mp3"></audio>
 
 <nav class="navbar mb-4">
     <div class="container-fluid d-flex flex-column flex-md-row justify-content-center align-items-center position-relative">
-        <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-none d-md-block position-absolute start-0 ms-3 top-50 translate-middle-y animate__animated animate__rubberBand">
-        <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-block d-md-none mb-2 animate__animated animate__rubberBand">
+        <img src="assets/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-none d-md-block position-absolute start-0 ms-3 top-50 translate-middle-y animate__animated animate__rubberBand">
+        <img src="assets/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-block d-md-none mb-2 animate__animated animate__rubberBand">
         <span class="navbar-brand mb-0 h1 animate__animated animate__pulse animate__infinite">🏁 GP do Atacado 🏁</span>
     </div>
 </nav>
@@ -153,7 +153,7 @@
         let primeiroNome = nome.trim().split(' ')[0];
         primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
         primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        return `ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Imagens_Cavalinhos/${primeiroNome}.png`;
+        return `assets/Images/Imagens_Cavalinhos/${primeiroNome}.png`;
     }
 
     async function fetchData() {
