@@ -16,7 +16,7 @@
     <!-- Animate.css para animações de entrada -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-    <link href="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/style.css" rel="stylesheet">
+    <link href="assets/style.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
@@ -46,12 +46,12 @@
 </head>
 <body>
 
-<audio id="startup-sound" src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Sons/cavalo-ratinho.mp3" autoplay></audio>
+<audio id="startup-sound" src="assets/Sons/cavalo-ratinho.mp3" autoplay></audio>
 
 <nav class="navbar mb-3">
     <div class="container-fluid d-flex flex-column flex-md-row justify-content-center align-items-center position-relative">
-        <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-none d-md-block position-absolute start-0 ms-3 top-50 translate-middle-y animate__animated animate__rubberBand">
-        <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-block d-md-none mb-2 animate__animated animate__rubberBand">
+        <img src="assets/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-none d-md-block position-absolute start-0 ms-3 top-50 translate-middle-y animate__animated animate__rubberBand">
+        <img src="assets/Images/Logo_Brunx.png" alt="Logo Brunx" height="60" class="d-block d-md-none mb-2 animate__animated animate__rubberBand">
         <span class="navbar-brand mb-0 h1 animate__animated animate__pulse animate__infinite">🏁 GP do Atacado 🏁</span>
     </div>
 </nav>
@@ -504,7 +504,7 @@
         let primeiroNome = nome.trim().split(' ')[0];
         primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
         primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const imgUrl = `ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Imagens_Cavalinhos/${primeiroNome}.png`;
+        const imgUrl = `assets/Images/Imagens_Cavalinhos/${primeiroNome}.png`;
 
         const imgEl = document.getElementById('perfil-img');
         imgEl.src = imgUrl;
@@ -597,7 +597,7 @@
                         <div class="cavalinho-wrapper" id="cavalinho-${index}" style="left: 0%; cursor: pointer;"
                              onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
                             <div class="valor-atual">${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumSignificantDigits: 3 })}</div>
-                            <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Imagens_Cavalinhos/${nomeArquivo}" class="avatar-img" alt="${vendedor.nome}"
+                            <img src="assets/Images/Imagens_Cavalinhos/${nomeArquivo}" class="avatar-img" alt="${vendedor.nome}"
                                  onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
                         </div>
                     </div>
@@ -635,7 +635,7 @@
                     </td>
                     <td>
                         <div class="d-flex align-items-center">
-                            <img src="ProjetoCavalinhosBrunx/ProjetoCavalinhos/src/Images/Imagens_Cavalinhos/${nomeArquivo}"
+                            <img src="assets/Images/Imagens_Cavalinhos/${nomeArquivo}"
                                  class="rounded-circle border border-2 border-dark me-3"
                                  style="width: 45px; height: 45px; object-fit: cover; background: #fff;"
                                  onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
