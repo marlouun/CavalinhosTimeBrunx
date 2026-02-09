@@ -205,6 +205,39 @@
 <script>
     Chart.register(ChartDataLabels);
 
+    function parseCurrency(value) {
+        if (!value || typeof value !== 'string') return 0;
+        let s = value.replace(/R\$|\s/g, '').trim();
+
+        const lastDot = s.lastIndexOf('.');
+        const lastComma = s.lastIndexOf(',');
+
+        // No separators, just parse
+        if (lastDot === -1 && lastComma === -1) {
+            return parseFloat(s) || 0;
+        }
+
+        // Determine which is the likely decimal separator based on 2 digits for cents
+        let decimalSeparator = null;
+        if (s.length - lastComma - 1 === 2) {
+            decimalSeparator = ',';
+        } else if (s.length - lastDot - 1 === 2) {
+            decimalSeparator = '.';
+        }
+
+        // If we found a likely decimal separator
+        if (decimalSeparator === ',') {
+            return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+        }
+        if (decimalSeparator === '.') {
+            return parseFloat(s.replace(/,/g, ''));
+        }
+
+        // If no clear decimal separator, it's likely an integer with thousands separators.
+        // Just remove all separators.
+        return parseFloat(s.replace(/[.,]/g, ''));
+    }
+
     // Configuração dos Links por Mês
     const urlsPorMes = {
         'jan': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?output=csv',
@@ -258,13 +291,7 @@
                 let nome = cols[0] ? cols[0].replace(/"/g, '').trim() : "";
                 let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
 
-                valorString = valorString.replace('R$', '').trim();
-                if (valorString.includes(',') && valorString.includes('.')) {
-                    valorString = valorString.replace(/\./g, '').replace(',', '.');
-                } else if (valorString.includes(',')) {
-                    valorString = valorString.replace(',', '.');
-                }
-                const valor = parseFloat(valorString);
+                const valor = parseCurrency(valorString);
 
                 if (nome && nome.length > 2 && !isNaN(valor) && valor > 0) {
                     resultados.push({ nome: nome, valor: valor });
