@@ -43,6 +43,8 @@
     let modoAtual = 'fev'; // Começa em Fevereiro
     let totalParticipantes = 0;
     let chartInstance = null;
+    let rankingAnterior = [];
+    let historicoUltrapassagens = [];
 
     // Variáveis globais para o Auto Scroll
     let autoScrollEnabled = false;
@@ -52,10 +54,6 @@
     // Função para trocar o mês
     function mudarMes(mes) {
         modoAtual = mes;
-
-        // Atualiza botões
-        document.querySelectorAll('.btn-mes').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`btn-${mes}`).classList.add('active');
 
         // Mostra loading e recarrega
         document.getElementById('loading').style.display = 'block';
@@ -67,14 +65,7 @@
     // Função auxiliar para baixar e processar um CSV
     async function baixarCSV(url) {
         try {
-            let response;
-            try {
-                response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-                if (!response.ok) throw new Error('Proxy 1 falhou');
-            } catch (e) {
-                response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-            }
-
+            const response = await fetch(url);
             if (!response.ok) throw new Error('Falha ao baixar');
             const data = await response.text();
             const rows = data.split('\n');
@@ -148,10 +139,74 @@
         }
     }
 
+    function detectarUltrapassagens(rankingAtual) {
+        if (rankingAnterior.length === 0) {
+            rankingAnterior = rankingAtual.map(v => ({ ...v }));
+            return;
+        }
+
+        const mapaPosicaoAnterior = new Map(rankingAnterior.map((v, i) => [v.nome, i]));
+
+        rankingAtual.forEach((vendedor, posAtual) => {
+            const posAnterior = mapaPosicaoAnterior.get(vendedor.nome);
+            if (posAnterior !== undefined && posAtual < posAnterior) {
+                const ultrapassado = rankingAnterior[posAtual];
+                const ultrapassou = vendedor.nome;
+                const quemFoiUltrapassado = ultrapassado.nome;
+
+                if (ultrapassou !== quemFoiUltrapassado) {
+                    const agora = new Date();
+                    const dataFormatada = agora.toLocaleDateString();
+                    const evento = {
+                        data: dataFormatada,
+                        descricao: `🔥 ${ultrapassou} passou ${quemFoiUltrapassado}!`
+                    };
+                    historicoUltrapassagens.unshift(evento);
+                }
+            }
+        });
+
+        if (historicoUltrapassagens.length > 5) {
+            historicoUltrapassagens.pop();
+        }
+
+        renderizarHistorico();
+        rankingAnterior = rankingAtual.map(v => ({ ...v }));
+    }
+
+    function renderizarHistorico() {
+        const container = document.getElementById('historico-ultrapassagens');
+        if (!container) return;
+
+        if (historicoUltrapassagens.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted">Aguardando a primeira ultrapassagem...</p>';
+            return;
+        }
+
+        const tabelaHtml = `
+            <table class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th scope="col">Data</th>
+                        <th scope="col">Evento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${historicoUltrapassagens.map(item => `
+                        <tr>
+                            <td>${item.data}</td>
+                            <td>${item.descricao}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        container.innerHTML = tabelaHtml;
+    }
+
     async function updateDashboard() {
         const result = await fetchData();
 
-        // Esconde loading e mostra conteúdo
         document.getElementById('loading').style.display = 'none';
         document.getElementById('dashboard-content').style.display = 'block';
 
@@ -162,25 +217,23 @@
         const ultimo = dadosVendedores[dadosVendedores.length - 1];
         const meio = dadosVendedores.length > 2 ? dadosVendedores[Math.floor(dadosVendedores.length / 2)] : null;
 
-        // Atualiza Título do Mês
+        detectarUltrapassagens(dadosVendedores);
+
         let labelMes = "";
         if(modoAtual === 'geral') labelMes = "Geral (Ano)";
         else if(modoAtual === 'jan') labelMes = "Janeiro";
         else if(modoAtual === 'fev') labelMes = "Fevereiro";
         document.getElementById('kpi-titulo-mes').innerText = `(${labelMes})`;
 
-        // Atualiza KPIs
         document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         document.getElementById('kpi-top-vendedor').innerText = lider ? lider.nome : "-";
 
         const hoje = new Date();
         document.getElementById('data-atualizacao').innerText = hoje.toLocaleDateString() + " " + hoje.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-        // Atualiza Corrida e Tabela
         renderizarCorrida(dadosVendedores);
         renderizarTabela(dadosVendedores);
 
-        // Atualiza Gráfico
         const ctxPie = document.getElementById('pieChart').getContext('2d');
         const backgroundColorsPizza = dadosVendedores.map(v => getTeamPattern(ctxPie, v.nome));
         renderPieChart(
@@ -189,11 +242,9 @@
             backgroundColorsPizza
         );
 
-        // Atualiza Narração
         gerarNarracao(lider, ultimo, meio);
     }
 
-    // --- Lógica do Auto Scroll ---
     function toggleAutoScroll() {
         autoScrollEnabled = !autoScrollEnabled;
         atualizarBotaoScroll();
@@ -247,30 +298,16 @@
     }
 
     async function initDashboard() {
-        const audio = document.getElementById('startup-sound');
-        if (audio) {
-            audio.play().catch(e => console.log("Autoplay bloqueado pelo navegador. Interaja com a página para ouvir.", e));
-        }
-
-        // Primeira carga
         await updateDashboard();
-
-        // Dispara confetes na primeira vez
         dispararConfetes();
-
-        // Inicializa estado do botão
         atualizarBotaoScroll();
-
-        // Configura atualização automática a cada 30 segundos (30000 ms)
         setInterval(updateDashboard, 30000);
     }
 
-    // --- Lógica do Perfil Lateral ---
     function abrirPerfil(nome, valor, index) {
         const posicao = index + 1;
         const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        // 1. Identificar Time
         let time = "Time Desconhecido";
         if (n.includes('everton')) time = "Corinthians (Timão)";
         else if (n.includes('maevelim')) time = "Botafogo (Fogão)";
@@ -279,7 +316,6 @@
         else if (n.includes('bruno')) time = "Flamengo (Mengão)";
         else if (n.includes('marlon')) time = "São Paulo (Tricolor)";
 
-        // 2. Frase de Situação (Posição)
         let fraseSituacao = "";
         let frasesMotivacionais = [];
 
@@ -289,13 +325,6 @@
                 "O difícil não é chegar no topo, é se manter lá. Continue acelerando!",
                 "Você é o alvo agora. Não olhe para trás, olhe para a linha de chegada!",
                 "Liderança é atitude. Continue inspirando o time!",
-                "O sucesso é alugado, e o aluguel vence todo dia. Pague o preço!",
-                "Mantenha a humildade e a fome de vencer. O topo é seu lugar!",
-                "Quem está na frente dita o ritmo. Mostre como se faz!",
-                "A vista é linda daqui de cima, mas não tire os olhos da pista.",
-                "Campeão não é quem vence uma vez, é quem vence sempre. Foco!",
-                "Você está voando! Mantenha o pé no acelerador.",
-                "A concorrência está babando, mas a taça é sua se continuar assim!"
             ];
         } else if (posicao <= 4) {
             fraseSituacao = "🔥 No G4! A liderança é logo ali, acelera!";
@@ -303,13 +332,6 @@
                 "Você está na elite! Falta pouco para o topo.",
                 "A consistência é a chave. Mantenha o ritmo e ataque na hora certa.",
                 "Os campeões são feitos de garra. Você está no caminho certo!",
-                "Mire na lua. Se errar, ainda estará entre as estrelas.",
-                "Não diminua a meta, aumente o esforço. O líder que se cuide!",
-                "Lugar de craque é no pódio. Não aceite menos que isso.",
-                "Você está respirando no cangote do líder. Vai pra cima!",
-                "A diferença entre o 2º e o 1º é apenas um sprint final.",
-                "Mantenha o foco. O troféu está ao alcance das mãos.",
-                "Você já provou que é bom. Agora prove que é o melhor."
             ];
         } else if (posicao > totalParticipantes - 4) {
             fraseSituacao = "⚠️ Alerta Z4! Hora de ligar o turbo e sair dessa!";
@@ -317,13 +339,6 @@
                 "Não importa como você começa, mas sim como termina.",
                 "O fracasso é apenas uma oportunidade para recomeçar com mais inteligência.",
                 "A corrida só acaba na bandeirada. Ainda dá tempo de virar o jogo!",
-                "Levanta a cabeça! Sua maior vitória será a sua virada.",
-                "Foguete não tem ré, mas às vezes precisa de um ajuste na rota. Vamos!",
-                "Acredite no seu potencial, a recuperação começa agora!",
-                "O fundo do poço tem mola. Use-a para subir!",
-                "Transforme a pressão em combustível. Mostre sua força!",
-                "Não é sobre quantas vezes você cai, mas quantas levanta.",
-                "Ainda tem muita pista pela frente. Acelera e surpreenda!"
             ];
         } else {
             fraseSituacao = "🚗 No meio do pelotão! É hora de ousar e buscar posições!";
@@ -331,27 +346,17 @@
                 "Saia da média! Você tem potencial para muito mais.",
                 "O meio da tabela é confortável, mas o topo é onde a mágica acontece.",
                 "Um passo de cada vez. A subida é constante.",
-                "Transforme sua vontade em potência. Acelera!",
-                "Não se contente com o 'bom'. Busque o 'extraordinário'.",
-                "A diferença entre o possível e o impossível está na sua determinação.",
-                "Chega de passeio! Hora de ligar o modo turbo.",
-                "Você não treinou para ser coadjuvante. Assuma o protagonismo!",
-                "Surpreenda a todos. Ninguém espera um ataque agora!",
-                "O conforto é o inimigo do progresso. Vamos subir!"
             ];
         }
 
-        // 3. Sorteia Frase Motivacional Específica
         const fraseMotivacao = frasesMotivacionais[Math.floor(Math.random() * frasesMotivacionais.length)];
 
-        // 4. Preencher HTML
         document.getElementById('perfil-nome').innerText = nome;
         document.getElementById('perfil-time').innerText = time;
         document.getElementById('perfil-posicao-badge').innerText = posicao + "º";
         document.getElementById('perfil-frase-situacao').innerText = fraseSituacao;
         document.getElementById('perfil-frase-motivacao').innerText = fraseMotivacao;
 
-        // Imagem
         let primeiroNome = nome.trim().split(' ')[0];
         primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
         primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -361,7 +366,6 @@
         imgEl.src = imgUrl;
         imgEl.onerror = function() { this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'; };
 
-        // 5. Abrir Offcanvas
         var bsOffcanvas = new bootstrap.Offcanvas(document.getElementById('painelPerfil'));
         bsOffcanvas.show();
     }
@@ -369,22 +373,22 @@
     function getTeamPattern(ctx, nome) {
         const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         let colors = [];
-        let horizontal = false; // Flag para listras horizontais
+        let horizontal = false;
 
         if (n.includes('everton')) colors = ['#000000', '#FFFFFF'];
         else if (n.includes('maevelim')) {
             colors = ['#000000', '#FFFFFF'];
-            horizontal = true; // Maevelim (Botafogo) com listras horizontais
+            horizontal = true;
         }
         else if (n.includes('emily')) colors = ['#006437', '#FFFFFF'];
         else if (n.includes('dariele')) colors = ['#831D1C', '#00913C', '#FFFFFF'];
         else if (n.includes('bruno')) {
             colors = ['#C3281E', '#000000'];
-            horizontal = true; // Bruno (Flamengo) com listras horizontais
+            horizontal = true;
         }
         else if (n.includes('marlon')) {
             colors = ['#FE0000', '#FFFFFF', '#000000'];
-            horizontal = true; // Marlon (São Paulo) com listras horizontais
+            horizontal = true;
         }
         else {
              const defaultColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
@@ -401,10 +405,8 @@
         colors.forEach((color, i) => {
             pCtx.fillStyle = color;
             if (horizontal) {
-                // Desenha listras horizontais
                 pCtx.fillRect(0, i * step, size, step);
             } else {
-                // Desenha listras verticais (padrão)
                 pCtx.fillRect(i * step, 0, step, size);
             }
         });
@@ -440,7 +442,6 @@
             primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             const nomeArquivo = primeiroNome + '.png';
 
-            // Inicializa com left: 0% para animação
             const raiaHtml = `
                 <div class="raia">
                     <div class="nome-vendedor" title="${vendedor.nome}">${vendedor.nome}</div>
@@ -456,11 +457,10 @@
             `;
             container.insertAdjacentHTML('beforeend', raiaHtml);
 
-            // Dispara a animação após um breve delay
             setTimeout(() => {
                 const el = document.getElementById(`cavalinho-${index}`);
                 if(el) el.style.left = `${porcentagem}%`;
-            }, 100 + (index * 50)); // Pequeno delay escalonado para efeito visual
+            }, 100 + (index * 50));
         });
     }
 
@@ -504,8 +504,6 @@
 
     function gerarNarracao(lider, ultimo, meio) {
         if (!lider && !ultimo && !meio) {
-             // Se chamado sem argumentos, tenta pegar do DOM ou apenas retorna
-             // Aqui vamos apenas garantir que não quebre
              return;
         }
 
@@ -513,25 +511,11 @@
             `OLHA O QUE ELE FEZ! ${lider.nome} disparou na liderança e não quer saber de conversa!`,
             `Haja coração, amigo! ${lider.nome} está voando baixo na pista!`,
             `É tetra? Não, é ${lider.nome} assumindo a ponta com autoridade!`,
-            `Quem segura ${lider.nome}? O motor tá turbinado hoje!`,
-            `Lá vem ${lider.nome}, descendo a ladeira e atropelando a concorrência!`,
-            `Pode isso, Arnaldo? ${lider.nome} tá jogando muito!`,
-            `Alô, mamãe! ${lider.nome} tá na frente e mandou avisar que hoje tem!`,
-            `Apertem os cintos! ${lider.nome} ligou o nitro!`,
-            `Que arrancada espetacular de ${lider.nome}! Ninguém pega!`,
-            `Segura o homem! ${lider.nome} tá impossível hoje!`,
-            `E lá atrás... ${ultimo.nome} vem num ritmo de passeio no parque com a tartaruga! 🐢`,
-            `Atenção ${ultimo.nome}! A tartaruga tá pedindo passagem!`,
-            `Será que ${ultimo.nome} esqueceu de tirar o freio de mão?`,
-            `Alguém avisa o ${ultimo.nome} que a corrida já começou!`,
-            `Vixi! ${ultimo.nome} tá mais devagar que internet discada!`
         ];
         if (meio) {
             frases.push(
                 `No pelotão do meio, ${meio.nome} segue firme tentando buscar os líderes!`,
                 `Olha o ${meio.nome} ali na "meiuca", estudando a melhor hora de atacar!`,
-                `Nem em primeiro, nem em último: ${meio.nome} mantém a regularidade no meio da tabela.`,
-                `A briga tá boa no meio do grid com ${meio.nome} disputando posição!`
             );
         }
         const fraseSorteada = frases[Math.floor(Math.random() * frases.length)];
@@ -541,7 +525,6 @@
     function renderPieChart(labels, data, backgroundColors) {
         const ctx = document.getElementById('pieChart').getContext('2d');
 
-        // Destrói o gráfico anterior se existir
         if (chartInstance) {
             chartInstance.destroy();
         }
