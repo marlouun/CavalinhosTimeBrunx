@@ -36,7 +36,7 @@
 
     // Configuração dos Links por Mês
     const urlsPorMes = {
-        'jan': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?output=csv',
+        'jan': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=0&single=true&output=csv',
         'fev': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=431147865&single=true&output=csv',
         'mar': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=837458743&single=true&output=csv'
     };
@@ -82,7 +82,12 @@
                 const valor = parseCurrency(valorString);
 
                 if (nome && nome.length > 2 && !isNaN(valor) && valor > 0) {
-                    resultados.push({ nome: nome, valor: valor });
+                    let nomeCorrigido = nome;
+                    if (nome.trim().toLowerCase().startsWith('emilly')) {
+                        // Corrige o nome para corresponder ao arquivo de imagem 'Emily.png'
+                        nomeCorrigido = 'Emily' + nome.substring('emilly'.length);
+                    }
+                    resultados.push({ nome: nomeCorrigido, valor: valor });
                 }
             });
             return resultados;
@@ -224,6 +229,7 @@
         if(modoAtual === 'geral') labelMes = "Geral (Ano)";
         else if(modoAtual === 'jan') labelMes = "Janeiro";
         else if(modoAtual === 'fev') labelMes = "Fevereiro";
+        else if(modoAtual === 'mar') labelMes = "Março";
         document.getElementById('kpi-titulo-mes').innerText = `(${labelMes})`;
 
         document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -312,7 +318,7 @@
         let time = "Time Desconhecido";
         if (n.includes('everton')) time = "Corinthians (Timão)";
         else if (n.includes('maevelim')) time = "Botafogo (Fogão)";
-        else if (n.includes('emily')) time = "Palmeiras (Verdão)";
+        else if (n.includes('emily')) time = "Grêmio (Imortal)";
         else if (n.includes('dariele')) time = "Fluminense (Flu)";
         else if (n.includes('bruno')) time = "Flamengo (Mengão)";
         else if (n.includes('marlon')) time = "São Paulo (Tricolor)";
@@ -381,7 +387,10 @@
             colors = ['#000000', '#FFFFFF'];
             horizontal = true;
         }
-        else if (n.includes('emily')) colors = ['#006437', '#FFFFFF'];
+        else if (n.includes('emily')) {
+            colors = ['#0D80BF', '#000000', '#FFFFFF'];
+            horizontal = true;
+        }
         else if (n.includes('dariele')) colors = ['#831D1C', '#00913C', '#FFFFFF'];
         else if (n.includes('bruno')) {
             colors = ['#C3281E', '#000000'];
