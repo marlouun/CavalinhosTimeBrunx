@@ -1,6 +1,55 @@
 
     Chart.register(ChartDataLabels);
 
+    // Define o plugin para desenhar os escudos nas fatias do gráfico de pizza
+    const shieldOnPieSlicesPlugin = {
+        id: 'shieldOnPieSlices',
+        afterDatasetsDraw: (chart) => {
+            if (chart.config.type !== 'pie' && chart.config.type !== 'doughnut') {
+                return;
+            }
+
+            const { ctx, chartArea: { left, top, right, bottom } } = chart;
+            const centerX = (left + right) / 2;
+            const centerY = (top + bottom) / 2;
+
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+                const meta = chart.getDatasetMeta(datasetIndex);
+                meta.data.forEach((arc, index) => {
+                    // Desenha apenas se a fatia for visível
+                    if (arc.outerRadius < 1 || arc.innerRadius === undefined) return;
+
+                    const { startAngle, endAngle, outerRadius, innerRadius } = arc;
+
+                    // Calcula o ponto médio do arco para posicionar o escudo
+                    const midAngle = (startAngle + endAngle) / 2;
+                    // Ajusta o raio para posicionar o escudo mais para dentro da fatia
+                    const shieldPlacementRadius = outerRadius * 0.2; // 20% do raio externo
+                    const x = centerX + Math.cos(midAngle) * shieldPlacementRadius;
+                    const y = centerY + Math.sin(midAngle) * shieldPlacementRadius;
+
+                    // Obtém o label para esta fatia para determinar o time
+                    const label = chart.data.labels[index];
+                    const baseTeamName = getBaseTeamNameFromPlayer(label);
+                    const shieldImg = teamShieldImages[baseTeamName];
+
+                    if (shieldImg) {
+                        // Reduz o tamanho do escudo para evitar sobreposição com os rótulos
+                        const shieldSize = outerRadius * 0.15; // 15% do raio externo
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.drawImage(shieldImg, -shieldSize / 2, -shieldSize / 2, shieldSize, shieldSize);
+                        ctx.restore();
+                    }
+                });
+            });
+        }
+    };
+
+    // Registra o plugin ChartDataLabels (já existente) e o novo plugin de escudo
+    Chart.register(ChartDataLabels, shieldOnPieSlicesPlugin);
+
+
     function parseCurrency(value) {
         if (!value || typeof value !== 'string') return 0;
         let s = value.replace(/R\$|\s/g, '').trim();
@@ -540,20 +589,17 @@
         }
         else {
              const defaultColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
-             // Return a solid color for default, as we don't have a shield for it
              return defaultColors[Math.floor(Math.random() * defaultColors.length)];
         }
 
-        const baseTeamName = getBaseTeamNameFromPlayer(nome);
-
         const patternCanvas = document.createElement('canvas');
-        const size = 80; // Increased size for better shield visibility
+        const size = 20; // Tamanho pequeno para o padrão da legenda
         patternCanvas.width = size;
         patternCanvas.height = size;
         const pCtx = patternCanvas.getContext('2d');
         const step = size / colors.length;
 
-        // Draw stripes
+        // Desenha apenas as listras
         colors.forEach((color, i) => {
             pCtx.fillStyle = color;
             if (horizontal) {
@@ -563,14 +609,7 @@
             }
         });
 
-        // Draw shield if available
-        const shieldImg = teamShieldImages[baseTeamName];
-        if (shieldImg) {
-            const shieldSize = size * 0.6; // Scale shield to 60% of pattern size
-            const x = (size - shieldSize) / 2;
-            const y = (size - shieldSize) / 2;
-            pCtx.drawImage(shieldImg, x, y, shieldSize, shieldSize);
-        }
+        // O desenho do escudo foi removido daqui e movido para o plugin 'shieldOnPieSlicesPlugin'
 
         return ctx.createPattern(patternCanvas, 'repeat');
     }
