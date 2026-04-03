@@ -357,15 +357,16 @@
         const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
         let time = "Time Desconhecido";
-        if (n.includes('everton')) time = "Corinthians (Timão)";
-        else if (n.includes('maevelim')) time = "Botafogo (Fogão)";
-        else if (n.includes('emily')) time = "Grêmio (Imortal)";
-        else if (n.includes('dariele')) time = "Fluminense (Flu)";
-        else if (n.includes('bruno')) time = "Flamengo (Mengão)";
-        else if (n.includes('marlon')) time = "São Paulo (Tricolor)";
-        else if (n.includes('maria')) time = "Santos (Peixe)";
-        else if (n.includes('leandra') || n.includes('lelandra')) time = "Bahia (Tricolor de Aço)";
-        else if (n.includes('vitoria')) time = "Mirassol (Leão)";
+        let nomeArquivoEscudo = "";
+        if (n.includes('everton')) { time = "Corinthians (Timão)"; nomeArquivoEscudo = "Corinthians HD.png"; }
+        else if (n.includes('maevelim')) { time = "Botafogo (Fogão)"; nomeArquivoEscudo = "Botafogo HD.png"; }
+        else if (n.includes('emily')) { time = "Grêmio (Imortal)"; nomeArquivoEscudo = "Grêmio HD.png"; }
+        else if (n.includes('dariele')) { time = "Fluminense (Flu)"; nomeArquivoEscudo = "Fluminense HD.png"; }
+        else if (n.includes('bruno')) { time = "Flamengo (Mengão)"; nomeArquivoEscudo = "Flamengo HD.png"; }
+        else if (n.includes('marlon')) { time = "São Paulo (Tricolor)"; nomeArquivoEscudo = "São Paulo HD.png"; }
+        else if (n.includes('maria')) { time = "Santos (Peixe)"; nomeArquivoEscudo = "Santos HD.png"; }
+        else if (n.includes('leandra') || n.includes('lelandra')) { time = "Bahia (Tricolor de Aço)"; nomeArquivoEscudo = "Bahia HD.png"; }
+        else if (n.includes('vitoria')) { time = "Mirassol (Leão)"; nomeArquivoEscudo = "Mirassol-SP HD.png"; }
 
         let frasesSituacao = [];
         let frasesMotivacionais = [];
@@ -446,8 +447,7 @@
 
         const escudoImgEl = document.getElementById('perfil-escudo-img');
         if (time !== "Time Desconhecido") {
-            const nomeTimeParaArquivo = time.split('(')[0].trim();
-            const escudoUrl = `@Escudos Time/${nomeTimeParaArquivo}.png`;
+            const escudoUrl = `assets/Images/EscudosTimes/${nomeArquivoEscudo}`;
             escudoImgEl.src = escudoUrl;
             escudoImgEl.onerror = function() { 
                 this.style.display = 'none'; // Hide if shield not found
