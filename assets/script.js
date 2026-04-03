@@ -53,6 +53,59 @@
     let scrollDirection = 1;
     let isPausedAtEdge = false;
 
+    // Global map for pre-loaded shield images
+    const teamShieldImages = {};
+
+    // Helper to get the base team name from player name
+    function getBaseTeamNameFromPlayer(playerName) {
+        const n = playerName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (n.includes('everton')) return "Corinthians";
+        else if (n.includes('maevelim')) return "Botafogo";
+        else if (n.includes('emily')) return "Grêmio";
+        else if (n.includes('dariele')) return "Fluminense";
+        else if (n.includes('bruno')) return "Flamengo";
+        else if (n.includes('marlon')) return "São Paulo";
+        else if (n.includes('maria')) return "Santos";
+        else if (n.includes('leandra') || n.includes('lelandra')) return "Bahia";
+        else if (n.includes('vitoria')) return "Mirassol-SP"; // Use "Mirassol-SP" for consistency with filename
+        return null;
+    }
+
+    // Helper to get shield filename from base team name
+    function getShieldFileNameFromBaseTeamName(baseTeamName) {
+        if (baseTeamName) {
+            return `${baseTeamName} HD.png`;
+        }
+        return null;
+    }
+
+    // Function to load all shield images
+    async function preloadShieldImages() {
+        const baseTeamNames = [
+            "Corinthians", "Botafogo", "Grêmio", "Fluminense", "Flamengo",
+            "São Paulo", "Santos", "Bahia", "Mirassol-SP"
+        ];
+        const promises = baseTeamNames.map(baseTeam => {
+            const fileName = getShieldFileNameFromBaseTeamName(baseTeam);
+            if (fileName) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.src = `assets/Images/EscudosTimes/${fileName}`;
+                    img.onload = () => {
+                        teamShieldImages[baseTeam] = img;
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        console.warn(`Failed to load shield image for ${baseTeam}: ${img.src}`);
+                        resolve(); // Resolve even on error to not block
+                    };
+                });
+            }
+            return Promise.resolve();
+        });
+        await Promise.all(promises);
+    }
+
     // Função para trocar o mês
     function mudarMes(mes) {
         modoAtual = mes;
@@ -346,6 +399,7 @@
 
     async function initDashboard() {
         document.getElementById('select-mes').value = modoAtual;
+        await preloadShieldImages(); // Preload images first
         await updateDashboard();
         dispararConfetes();
         atualizarBotaoScroll();
@@ -486,16 +540,20 @@
         }
         else {
              const defaultColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+             // Return a solid color for default, as we don't have a shield for it
              return defaultColors[Math.floor(Math.random() * defaultColors.length)];
         }
 
+        const baseTeamName = getBaseTeamNameFromPlayer(nome);
+
         const patternCanvas = document.createElement('canvas');
-        const size = 20;
+        const size = 80; // Increased size for better shield visibility
         patternCanvas.width = size;
         patternCanvas.height = size;
         const pCtx = patternCanvas.getContext('2d');
         const step = size / colors.length;
 
+        // Draw stripes
         colors.forEach((color, i) => {
             pCtx.fillStyle = color;
             if (horizontal) {
@@ -504,6 +562,15 @@
                 pCtx.fillRect(i * step, 0, step, size);
             }
         });
+
+        // Draw shield if available
+        const shieldImg = teamShieldImages[baseTeamName];
+        if (shieldImg) {
+            const shieldSize = size * 0.6; // Scale shield to 60% of pattern size
+            const x = (size - shieldSize) / 2;
+            const y = (size - shieldSize) / 2;
+            pCtx.drawImage(shieldImg, x, y, shieldSize, shieldSize);
+        }
 
         return ctx.createPattern(patternCanvas, 'repeat');
     }
@@ -618,7 +685,7 @@
         }
 
         chartInstance = new Chart(ctx, {
-            type: 'doughnut',
+            type: 'pie',
             data: {
                 labels: labels,
                 datasets: [{
