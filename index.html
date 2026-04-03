@@ -69,8 +69,9 @@
             <select class="form-select dropdown-mes" id="select-mes" onchange="mudarMes(this.value)">
                 <option value="geral">🏆 GERAL (ANO)</option>
                 <option value="jan">📅 JANEIRO</option>
-                <option value="fev" selected>📅 FEVEREIRO</option>
+                <option value="fev">📅 FEVEREIRO</option>
                 <option value="mar">📅 MARÇO</option>
+                <option value="abr" selected>📅 ABRIL</option>
             </select>
         </div>
     </div>
@@ -194,11 +195,16 @@
     </div>
     <div class="offcanvas-body text-center" style="background-color: #f8f9fa;">
 
-        <div class="mb-4 position-relative d-inline-block">
-            <img id="perfil-img" src="" class="rounded-circle border border-4 border-dark shadow" style="width: 150px; height: 150px; object-fit: cover; background: white;">
-            <span id="perfil-posicao-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-2 border-white" style="font-size: 1.2rem;">
-                1º
-            </span>
+        <div class="d-flex justify-content-around align-items-center mb-4">
+            <div class="position-relative">
+                <img id="perfil-img" src="" class="rounded-circle border border-4 border-dark shadow" style="width: 120px; height: 120px; object-fit: cover; background: white;">
+                <span id="perfil-posicao-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-2 border-white" style="font-size: 1.2rem;">
+                    1º
+                </span>
+            </div>
+            <div>
+                <img id="perfil-escudo-img" src="" class="shadow" style="width: 100px; height: 100px; object-fit: contain;">
+            </div>
         </div>
 
         <h2 id="perfil-nome" class="mb-1" style="font-family: 'Bangers'; color: #333;">Nome do Jogador</h2>

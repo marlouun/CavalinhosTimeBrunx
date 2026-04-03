@@ -38,10 +38,11 @@
     const urlsPorMes = {
         'jan': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=0&single=true&output=csv',
         'fev': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=431147865&single=true&output=csv',
-        'mar': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=837458743&single=true&output=csv'
+        'mar': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=837458743&single=true&output=csv',
+        'abr': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=938359542&single=true&output=csv'
     };
 
-    let modoAtual = 'fev'; // Começa em Fevereiro
+    let modoAtual = 'abr'; // Começa em Abril
     let totalParticipantes = 0;
     let chartInstance = null;
     let rankingAnterior = [];
@@ -64,7 +65,7 @@
     }
 
     // Função auxiliar para baixar e processar um CSV
-    async function baixarCSV(url) {
+    async function baixarCSV(url, mes) {
         try {
             const response = await fetch(url);
             if (!response.ok) throw new Error('Falha ao baixar');
@@ -72,24 +73,47 @@
             const rows = data.split('\n');
             let resultados = [];
 
-            rows.forEach(row => {
-                if (!row || row.trim() === '') return;
-                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            if (mes === 'abr') {
+                const mapeamentoAbril = {
+                    "BRUNO O.": 0,
+                    "DARIELE": 1,
+                    "EMILY": 2,
+                    "EVERTON": 3,
+                    "LEANDRA": 6,
+                    "MAEVELIM": 8,
+                    "MARLON": 9,
+                    "MARIA": 10,
+                    "VITORIA": 11
+                };
 
-                let nome = cols[0] ? cols[0].replace(/"/g, '').trim() : "";
-                let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
-
-                const valor = parseCurrency(valorString);
-
-                if (nome && nome.length > 2 && !isNaN(valor) && valor > 0) {
-                    let nomeCorrigido = nome;
-                    if (nome.trim().toLowerCase().startsWith('emilly')) {
-                        // Corrige o nome para corresponder ao arquivo de imagem 'Emily.png'
-                        nomeCorrigido = 'Emily' + nome.substring('emilly'.length);
+                for (const [nomeVendedor, rowIndex] of Object.entries(mapeamentoAbril)) {
+                    let valor = 0; // Default to 0
+                    if (rows[rowIndex]) {
+                        const row = rows[rowIndex];
+                        const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
+                        valor = parseCurrency(valorString);
                     }
-                    resultados.push({ nome: nomeCorrigido, valor: valor });
+                    
+                    resultados.push({ nome: nomeVendedor, valor: valor });
                 }
-            });
+
+            } else {
+                // Lógica genérica para os outros meses
+                rows.forEach(row => {
+                    if (!row || row.trim() === '') return;
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+
+                    let nome = cols[0] ? cols[0].replace(/"/g, '').trim().toUpperCase() : "";
+                    let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
+
+                    const valor = parseCurrency(valorString);
+
+                    if (nome && nome.length > 2 && !isNaN(valor) && valor > 0) {
+                        resultados.push({ nome: nome, valor: valor });
+                    }
+                });
+            }
             return resultados;
         } catch (error) {
             console.error("Erro ao baixar CSV:", url, error);
@@ -104,17 +128,18 @@
 
             if (modoAtual === 'geral') {
                 // Modo Geral: Baixa todos e soma
-                let mapaVendas = {}; // Objeto para somar: { "Marlon": 5000, "Everton": 3000 }
+                let mapaVendas = {}; // Objeto para somar: { "MARLON": 5000, "EVERTON": 3000 }
 
-                const promises = Object.values(urlsPorMes).map(url => baixarCSV(url));
+                const promises = Object.entries(urlsPorMes).map(([mes, url]) => baixarCSV(url, mes));
                 const resultadosArrays = await Promise.all(promises);
 
                 resultadosArrays.forEach(listaMes => {
                     listaMes.forEach(item => {
-                        if (mapaVendas[item.nome]) {
-                            mapaVendas[item.nome] += item.valor;
+                        const nomeCaps = item.nome.toUpperCase();
+                        if (mapaVendas[nomeCaps]) {
+                            mapaVendas[nomeCaps] += item.valor;
                         } else {
-                            mapaVendas[item.nome] = item.valor;
+                            mapaVendas[nomeCaps] = item.valor;
                         }
                     });
                 });
@@ -128,7 +153,7 @@
             } else {
                 // Modo Mês Específico
                 const url = urlsPorMes[modoAtual];
-                dadosVendedores = await baixarCSV(url);
+                dadosVendedores = await baixarCSV(url, modoAtual);
                 dadosVendedores.forEach(d => totalFaturado += d.valor);
             }
 
@@ -143,6 +168,20 @@
             console.error("Erro ao buscar dados:", error);
             return null;
         }
+    }
+
+    function getNomeArquivo(nome) {
+        const n = nome.toUpperCase();
+        // Casos especiais para corresponder aos nomes dos arquivos
+        if (n === 'MARIA') return 'Maria.png';
+        if (n === 'VITORIA') return 'Vitoria.png';
+        if (n === 'LEANDRA') return 'Leandra.png';
+        
+        // Lógica padrão para os outros
+        let primeiroNome = nome.trim().split(' ')[0];
+        primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+        primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return primeiroNome + '.png';
     }
 
     function detectarUltrapassagens(rankingAtual) {
@@ -230,6 +269,7 @@
         else if(modoAtual === 'jan') labelMes = "Janeiro";
         else if(modoAtual === 'fev') labelMes = "Fevereiro";
         else if(modoAtual === 'mar') labelMes = "Março";
+        else if(modoAtual === 'abr') labelMes = "Abril";
         document.getElementById('kpi-titulo-mes').innerText = `(${labelMes})`;
 
         document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -305,6 +345,7 @@
     }
 
     async function initDashboard() {
+        document.getElementById('select-mes').value = modoAtual;
         await updateDashboard();
         dispararConfetes();
         atualizarBotaoScroll();
@@ -322,56 +363,99 @@
         else if (n.includes('dariele')) time = "Fluminense (Flu)";
         else if (n.includes('bruno')) time = "Flamengo (Mengão)";
         else if (n.includes('marlon')) time = "São Paulo (Tricolor)";
+        else if (n.includes('maria')) time = "Santos (Peixe)";
+        else if (n.includes('leandra') || n.includes('lelandra')) time = "Bahia (Tricolor de Aço)";
+        else if (n.includes('vitoria')) time = "Mirassol (Leão)";
 
-        let fraseSituacao = "";
+        let frasesSituacao = [];
         let frasesMotivacionais = [];
 
         if (posicao === 1) {
-            fraseSituacao = "👑 O REI DA PISTA! Olhando todo mundo pelo retrovisor!";
+            frasesSituacao = [
+                "👑 O REI DA PISTA! Olhando todo mundo pelo retrovisor!",
+                "🏆 Na pole position! O cheiro da vitória está no ar.",
+                "🥇 Isolado na ponta! Ninguém consegue pegar."
+            ];
             frasesMotivacionais = [
                 "O difícil não é chegar no topo, é se manter lá. Continue acelerando!",
                 "Você é o alvo agora. Não olhe para trás, olhe para a linha de chegada!",
                 "Liderança é atitude. Continue inspirando o time!",
+                "O topo é seu lugar. Faça valer a pena!",
+                "Quem está em primeiro não para. Acelera!",
+                "A vista daqui de cima é ótima, não é? Mantenha o foco!"
             ];
         } else if (posicao <= 4) {
-            fraseSituacao = "🔥 No G4! A liderança é logo ali, acelera!";
+            frasesSituacao = [
+                "🔥 No G4! A liderança é logo ali, acelera!",
+                " podium à vista! Continue pressionando!",
+                "🚀 Em velocidade de cruzeiro rumo ao topo!"
+            ];
             frasesMotivacionais = [
                 "Você está na elite! Falta pouco para o topo.",
                 "A consistência é a chave. Mantenha o ritmo e ataque na hora certa.",
                 "Os campeões são feitos de garra. Você está no caminho certo!",
+                "O pódio está te esperando. Não desista agora!",
+                "Cada venda te deixa mais perto da glória.",
+                "Sinta a pressão, use-a como combustível."
             ];
         } else if (posicao > totalParticipantes - 4) {
-            fraseSituacao = "⚠️ Alerta Z4! Hora de ligar o turbo e sair dessa!";
+            frasesSituacao = [
+                "⚠️ Alerta Z4! Hora de ligar o turbo e sair dessa!",
+                "🚦 Na zona de rebaixamento! É tudo ou nada agora!",
+                "Cuidado com a lanterna! Acelere para fugir!"
+            ];
             frasesMotivacionais = [
                 "Não importa como você começa, mas sim como termina.",
                 "O fracasso é apenas uma oportunidade para recomeçar com mais inteligência.",
                 "A corrida só acaba na bandeirada. Ainda dá tempo de virar o jogo!",
+                "Use a lanterna para iluminar seu caminho de volta ao topo.",
+                "A maior glória não é nunca cair, mas sim levantar-se a cada queda.",
+                "Transforme cada 'não' em um degrau para o 'sim'."
             ];
         } else {
-            fraseSituacao = "🚗 No meio do pelotão! É hora de ousar e buscar posições!";
+            frasesSituacao = [
+                "🚗 No meio do pelotão! É hora de ousar e buscar posições!",
+                "Buscando espaço na pista! Cada centímetro conta.",
+                "Na briga do meio da tabela! Acelere para se destacar."
+            ];
             frasesMotivacionais = [
                 "Saia da média! Você tem potencial para muito mais.",
                 "O meio da tabela é confortável, mas o topo é onde a mágica acontece.",
                 "Um passo de cada vez. A subida é constante.",
+                "A ultrapassagem de hoje é a liderança de amanhã.",
+                "Conforto é inimigo do progresso. Acelere!",
+                "Pense fora da caixa, venda fora da curva."
             ];
         }
 
-        const fraseMotivacao = frasesMotivacionais[Math.floor(Math.random() * frasesMotivacionais.length)];
+        const fraseSituacaoSorteada = frasesSituacao[Math.floor(Math.random() * frasesSituacao.length)];
+        const fraseMotivacaoSorteada = frasesMotivacionais[Math.floor(Math.random() * frasesMotivacionais.length)];
 
         document.getElementById('perfil-nome').innerText = nome;
         document.getElementById('perfil-time').innerText = time;
         document.getElementById('perfil-posicao-badge').innerText = posicao + "º";
-        document.getElementById('perfil-frase-situacao').innerText = fraseSituacao;
-        document.getElementById('perfil-frase-motivacao').innerText = fraseMotivacao;
+        document.getElementById('perfil-frase-situacao').innerText = fraseSituacaoSorteada;
+        document.getElementById('perfil-frase-motivacao').innerText = fraseMotivacaoSorteada;
 
-        let primeiroNome = nome.trim().split(' ')[0];
-        primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
-        primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const imgUrl = `assets/Images/Imagens_Cavalinhos/${primeiroNome}.png`;
+        const nomeArquivo = getNomeArquivo(nome);
+        const imgUrl = `assets/Images/Imagens_Cavalinhos/${nomeArquivo}`;
 
         const imgEl = document.getElementById('perfil-img');
         imgEl.src = imgUrl;
         imgEl.onerror = function() { this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'; };
+
+        const escudoImgEl = document.getElementById('perfil-escudo-img');
+        if (time !== "Time Desconhecido") {
+            const nomeTimeParaArquivo = time.split('(')[0].trim();
+            const escudoUrl = `@Escudos Time/${nomeTimeParaArquivo}.png`;
+            escudoImgEl.src = escudoUrl;
+            escudoImgEl.onerror = function() { 
+                this.style.display = 'none'; // Hide if shield not found
+            };
+            escudoImgEl.style.display = 'block'; // Show if found
+        } else {
+            escudoImgEl.style.display = 'none'; // Hide for unknown team
+        }
 
         var bsOffcanvas = new bootstrap.Offcanvas(document.getElementById('painelPerfil'));
         bsOffcanvas.show();
@@ -383,22 +467,22 @@
         let horizontal = false;
 
         if (n.includes('everton')) colors = ['#000000', '#FFFFFF'];
-        else if (n.includes('maevelim')) {
-            colors = ['#000000', '#FFFFFF'];
-            horizontal = true;
-        }
-        else if (n.includes('emily')) {
-            colors = ['#0D80BF', '#000000', '#FFFFFF'];
-            horizontal = true;
-        }
+        else if (n.includes('maevelim')) { colors = ['#000000', '#FFFFFF']; horizontal = true; }
+        else if (n.includes('emily')) { colors = ['#0D2E6E', '#000000', '#FFFFFF']; }
         else if (n.includes('dariele')) colors = ['#831D1C', '#00913C', '#FFFFFF'];
-        else if (n.includes('bruno')) {
-            colors = ['#C3281E', '#000000'];
+        else if (n.includes('bruno')) { colors = ['#C3281E', '#000000']; horizontal = true; }
+        else if (n.includes('marlon')) { colors = ['#FE0000', '#FFFFFF', '#000000']; horizontal = true; }
+        else if (n.includes('maria')) {
+            colors = ['#FFFFFF', '#000000'];
+            horizontal = false;
+        }
+        else if (n.includes('leandra') || n.includes('lelandra')) {
+            colors = ['#0033A0', '#FFFFFF', '#E03A3E'];
             horizontal = true;
         }
-        else if (n.includes('marlon')) {
-            colors = ['#FE0000', '#FFFFFF', '#000000'];
-            horizontal = true;
+        else if (n.includes('vitoria')) {
+            colors = ['#FFD700', '#008000'];
+            horizontal = false;
         }
         else {
              const defaultColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
@@ -447,10 +531,7 @@
             let porcentagem = (vendedor.valor / maiorValor) * 100;
             if(porcentagem > 95) porcentagem = 95;
 
-            let primeiroNome = vendedor.nome.trim().split(' ')[0];
-            primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
-            primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const nomeArquivo = primeiroNome + '.png';
+            const nomeArquivo = getNomeArquivo(vendedor.nome);
 
             const raiaHtml = `
                 <div class="raia">
@@ -480,10 +561,7 @@
 
         vendedores.forEach((vendedor, index) => {
             const posicao = index + 1;
-            let primeiroNome = vendedor.nome.trim().split(' ')[0];
-            primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
-            primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            const nomeArquivo = primeiroNome + '.png';
+            const nomeArquivo = getNomeArquivo(vendedor.nome);
 
             let badgeColor = '#6c757d';
             if (posicao <= 4) badgeColor = '#28a745';
