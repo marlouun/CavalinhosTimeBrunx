@@ -112,6 +112,7 @@
         else if (n.includes('maevelim')) return "Botafogo";
         else if (n.includes('emily')) return "Grêmio";
         else if (n.includes('dariele')) return "Fluminense";
+        else if (n.includes('daniele')) return "Cruzeiro";
         else if (n.includes('bruno')) return "Flamengo";
         else if (n.includes('marlon')) return "São Paulo";
         else if (n.includes('maria')) return "Santos";
@@ -132,7 +133,7 @@
     async function preloadShieldImages() {
         const baseTeamNames = [
             "Corinthians", "Botafogo", "Grêmio", "Fluminense", "Flamengo",
-            "São Paulo", "Santos", "Bahia", "Mirassol-SP"
+            "São Paulo", "Santos", "Bahia", "Mirassol-SP", "Cruzeiro"
         ];
         const promises = baseTeamNames.map(baseTeam => {
             const fileName = getShieldFileNameFromBaseTeamName(baseTeam);
@@ -177,10 +178,11 @@
 
             if (mes === 'abr') {
                 const mapeamentoAbril = {
-                    "BRUNO O.": 0,
+                    "BRUNO": 0,
                     "DARIELE": 1,
-                    "EMILY": 2,
-                    "EVERTON": 3,
+                    "DANIELE": 2,
+                    "EMILY": 3,
+                    "EVERTON": 4,
                     "LEANDRA": 6,
                     "MAEVELIM": 8,
                     "MARLON": 9,
@@ -237,11 +239,15 @@
 
                 resultadosArrays.forEach(listaMes => {
                     listaMes.forEach(item => {
-                        const nomeCaps = item.nome.toUpperCase();
-                        if (mapaVendas[nomeCaps]) {
-                            mapaVendas[nomeCaps] += item.valor;
+                        let nomeNormalizado = item.nome.toUpperCase();
+                        if (nomeNormalizado === 'BRUNO O.') {
+                            nomeNormalizado = 'BRUNO';
+                        }
+                        
+                        if (mapaVendas[nomeNormalizado]) {
+                            mapaVendas[nomeNormalizado] += item.valor;
                         } else {
-                            mapaVendas[nomeCaps] = item.valor;
+                            mapaVendas[nomeNormalizado] = item.valor;
                         }
                     });
                 });
@@ -465,6 +471,7 @@
         else if (n.includes('maevelim')) { time = "Botafogo (Fogão)"; nomeArquivoEscudo = "Botafogo HD.png"; }
         else if (n.includes('emily')) { time = "Grêmio (Imortal)"; nomeArquivoEscudo = "Grêmio HD.png"; }
         else if (n.includes('dariele')) { time = "Fluminense (Flu)"; nomeArquivoEscudo = "Fluminense HD.png"; }
+        else if (n.includes('daniele')) { time = "Cruzeiro (Raposa)"; nomeArquivoEscudo = "Cruzeiro HD.png"; }
         else if (n.includes('bruno')) { time = "Flamengo (Mengão)"; nomeArquivoEscudo = "Flamengo HD.png"; }
         else if (n.includes('marlon')) { time = "São Paulo (Tricolor)"; nomeArquivoEscudo = "São Paulo HD.png"; }
         else if (n.includes('maria')) { time = "Santos (Peixe)"; nomeArquivoEscudo = "Santos HD.png"; }
@@ -573,6 +580,7 @@
         else if (n.includes('maevelim')) { colors = ['#000000', '#FFFFFF']; horizontal = true; }
         else if (n.includes('emily')) { colors = ['#0D2E6E', '#000000', '#FFFFFF']; }
         else if (n.includes('dariele')) colors = ['#831D1C', '#00913C', '#FFFFFF'];
+        else if (n.includes('daniele')) { colors = ['#0033A0', '#FFFFFF']; }
         else if (n.includes('bruno')) { colors = ['#C3281E', '#000000']; horizontal = true; }
         else if (n.includes('marlon')) { colors = ['#FE0000', '#FFFFFF', '#000000']; horizontal = true; }
         else if (n.includes('maria')) {
