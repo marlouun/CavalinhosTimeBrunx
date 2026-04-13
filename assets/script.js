@@ -183,7 +183,7 @@
                     "DANIELE": 2,
                     "EMILY": 3,
                     "EVERTON": 4,
-                    "LEANDRA": 6,
+                    "LEANDRA": 7,
                     "MAEVELIM": 8,
                     "MARLON": 9,
                     "MARIA": 10,
