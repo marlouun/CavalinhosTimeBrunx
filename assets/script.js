@@ -88,10 +88,11 @@
         'jan': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=0&single=true&output=csv',
         'fev': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=431147865&single=true&output=csv',
         'mar': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=837458743&single=true&output=csv',
-        'abr': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=938359542&single=true&output=csv'
+        'abr': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=938359542&single=true&output=csv',
+        'mai': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=1462491173&single=true&output=csv'
     };
 
-    let modoAtual = 'abr'; // Começa em Abril
+    let modoAtual = 'mai'; // Começa em Maio
     let totalParticipantes = 0;
     let chartInstance = null;
     let rankingAnterior = [];
@@ -202,6 +203,32 @@
                     resultados.push({ nome: nomeVendedor, valor: valor });
                 }
 
+            } else if (mes === 'mai') {
+                const mapeamentoMaio = {
+                    "BRUNO": 0, // a1 -> índice 0
+                    "DARIELE": 1, // a2 -> índice 1
+                    "DANIELE": 2, // a3 -> índice 2
+                    "EMILY": 3, // a4 -> índice 3
+                    "EVERTON": 4, // a5 -> índice 4
+                    "LEANDRA": 7, // a8 -> índice 7 (0-based)
+                    "MAEVELIM": 8, // a9 -> índice 8
+                    "MARLON": 9, // a10 -> índice 9
+                    "MARIA": 10, // a11 -> índice 10
+                    "VITORIA": 11 // a12 -> índice 11
+                };
+
+                for (const [nomeVendedor, rowIndex] of Object.entries(mapeamentoMaio)) {
+                    let valor = 0; // Default to 0
+                    if (rows[rowIndex]) {
+                        const row = rows[rowIndex];
+                        const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
+                        valor = parseCurrency(valorString);
+                    }
+                    
+                    resultados.push({ nome: nomeVendedor, valor: valor });
+                }
+
             } else {
                 // Lógica genérica para os outros meses
                 rows.forEach(row => {
@@ -210,6 +237,11 @@
 
                     let nome = cols[0] ? cols[0].replace(/"/g, '').trim().toUpperCase() : "";
                     let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
+
+                    // Removemos o " O." do Bruno se vier na planilha para padronizar
+                    if (nome === "BRUNO O.") {
+                        nome = "BRUNO";
+                    }
 
                     const valor = parseCurrency(valorString);
 
@@ -284,6 +316,7 @@
         if (n === 'MARIA') return 'Maria.png';
         if (n === 'VITORIA') return 'Vitoria.png';
         if (n === 'LEANDRA') return 'Leandra.png';
+        if (n === 'DANIELE') return 'Daniele.png'; // Add special case for Daniele if needed
         
         // Lógica padrão para os outros
         let primeiroNome = nome.trim().split(' ')[0];
@@ -378,6 +411,7 @@
         else if(modoAtual === 'fev') labelMes = "Fevereiro";
         else if(modoAtual === 'mar') labelMes = "Março";
         else if(modoAtual === 'abr') labelMes = "Abril";
+        else if(modoAtual === 'mai') labelMes = "Maio";
         document.getElementById('kpi-titulo-mes').innerText = `(${labelMes})`;
 
         document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
