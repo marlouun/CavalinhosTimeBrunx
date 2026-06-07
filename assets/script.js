@@ -1,5 +1,5 @@
-// [COPA DO MUNDO] Variável de controle do tema. Mude para false para desativar.
-let isWorldCupMode = true;
+// [COPA DO MUNDO] A variável agora é dinâmica, baseada no mês.
+let isWorldCupMode = false;
 
 Chart.register(ChartDataLabels);
 
@@ -92,11 +92,10 @@ const urlsPorMes = {
     'mar': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=837458743&single=true&output=csv',
     'abr': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=938359542&single=true&output=csv',
     'mai': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=1462491173&single=true&output=csv',
-    // [COPA DO MUNDO] Adicionada a URL de Junho
-    'jun': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=548050871&single=true&output=csv'
+    'jun': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=548050871&single=true&output=csv',
+    'jul': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=548050871&single=true&output=csv' // Assuming July uses the same sheet for now
 };
 
-// [COPA DO MUNDO] Mês inicial padrão alterado para Junho
 let modoAtual = 'jun'; 
 let totalParticipantes = 0;
 let chartInstance = null;
@@ -115,7 +114,6 @@ const teamShieldImages = {};
 function getBaseTeamNameFromPlayer(playerName) {
     const n = playerName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     
-    // In World Cup mode, shield is the Brazilian flag for everyone
     if (isWorldCupMode) return "Brasil";
 
     if (n.includes('everton')) return "Corinthians";
@@ -127,14 +125,14 @@ function getBaseTeamNameFromPlayer(playerName) {
     else if (n.includes('marlon')) return "São Paulo";
     else if (n.includes('maria')) return "Santos";
     else if (n.includes('leandra') || n.includes('lelandra')) return "Bahia";
-    else if (n.includes('vitoria')) return "Mirassol-SP"; // Use "Mirassol-SP" for consistency with filename
+    else if (n.includes('vitoria')) return "Mirassol-SP";
     return null;
 }
 
 // Helper to get shield filename from base team name
 function getShieldFileNameFromBaseTeamName(baseTeamName) {
     if (baseTeamName) {
-        if (baseTeamName === "Brasil") return "Brasil HD.png"; // Assume this file exists or will be added
+        if (baseTeamName === "Brasil") return "Brasil HD.png"; 
         return `${baseTeamName} HD.png`;
     }
     return null;
@@ -151,14 +149,14 @@ async function preloadShieldImages() {
         if (fileName) {
             return new Promise((resolve) => {
                 const img = new Image();
-                img.src = `assets/Images/EscudosTimes/${fileName}`;
+                img.src = `assets/Imagens/EscudosTimes/${fileName}`;
                 img.onload = () => {
                     teamShieldImages[baseTeam] = img;
                     resolve();
                 };
                 img.onerror = () => {
                     console.warn(`Failed to load shield image for ${baseTeam}: ${img.src}`);
-                    resolve(); // Resolve even on error to not block
+                    resolve();
                 };
             });
         }
@@ -170,11 +168,9 @@ async function preloadShieldImages() {
 // Função para trocar o mês
 function mudarMes(mes) {
     modoAtual = mes;
-
-    // Mostra loading e recarrega
+    updateTheme();
     document.getElementById('loading').style.display = 'block';
     document.getElementById('dashboard-content').style.display = 'none';
-
     updateDashboard();
 }
 
@@ -224,7 +220,7 @@ async function baixarCSV(url, mes) {
             }
 
         } else {
-            // Lógica genérica para os outros meses (incluindo jun)
+            // Lógica genérica para os outros meses
             rows.forEach(row => {
                 if (!row || row.trim() === '') return;
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
@@ -232,14 +228,18 @@ async function baixarCSV(url, mes) {
                 let nome = cols[0] ? cols[0].replace(/"/g, '').trim().toUpperCase() : "";
                 let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
 
-                // Removemos o " O." do Bruno se vier na planilha para padronizar
                 if (nome === "BRUNO O.") {
                     nome = "BRUNO";
                 }
 
-                // [COPA DO MUNDO] Filtro: remover Marlon, Dariele, Maria e Janaina de Junho
-                if (mes === 'jun' && (nome === 'MARLON' || nome === 'DARIELE' || nome === 'MARIA' || nome === 'JANAINA')) {
-                    return; // Pula a iteração, ignorando esses vendedores
+                // Filtro global: Janaina e Jaciara ignoradas em TODOS os meses
+                if (nome === 'JANAINA' || nome === 'JACIARA') {
+                    return; 
+                }
+
+                // [COPA DO MUNDO] Filtro dinâmico para Junho e Julho
+                if ((mes === 'jun' || mes === 'jul') && ['MARLON', 'DARIELE', 'MARIA'].includes(nome)) {
+                    return; 
                 }
 
                 const valor = parseCurrency(valorString);
@@ -309,7 +309,6 @@ async function fetchData() {
     }
 }
 
-// [COPA DO MUNDO] Nova função para resolver a URL completa do Avatar
 function getAvatarUrl(nome) {
     const n = nome.toUpperCase();
     
@@ -330,7 +329,6 @@ function getAvatarUrl(nome) {
         return `assets/Imagens_Brasil/${nomeBrasil}_Brasil.png`;
     }
 
-    // Lógica normal de clubes
     let nomeArquivo = "";
     if (n === 'MARIA') nomeArquivo = 'Maria.png';
     else if (n === 'VITORIA') nomeArquivo = 'Vitoria.png';
@@ -342,7 +340,7 @@ function getAvatarUrl(nome) {
         primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         nomeArquivo = primeiroNome + '.png';
     }
-    return `assets/Images/Imagens_Cavalinhos/${nomeArquivo}`;
+    return `assets/Imagens/Imagens_Cavalinhos/${nomeArquivo}`;
 }
 
 function detectarUltrapassagens(rankingAtual) {
@@ -410,6 +408,22 @@ function renderizarHistorico() {
     container.innerHTML = tabelaHtml;
 }
 
+function updateTheme() {
+    isWorldCupMode = (modoAtual === 'jun' || modoAtual === 'jul');
+    const logoDesktop = document.getElementById('logo-desktop');
+    const logoMobile = document.getElementById('logo-mobile');
+
+    if (isWorldCupMode) {
+        document.body.classList.add('copa-mundo-theme');
+        if (logoDesktop) logoDesktop.src = 'assets/Imagens/LogoBrunxCopa.png';
+        if (logoMobile) logoMobile.src = 'assets/Imagens/LogoBrunxCopa.png';
+    } else {
+        document.body.classList.remove('copa-mundo-theme');
+        if (logoDesktop) logoDesktop.src = 'assets/Imagens/LogoBrunxBranca.png';
+        if (logoMobile) logoMobile.src = 'assets/Imagens/LogoBrunxBranca.png';
+    }
+}
+
 async function updateDashboard() {
     const result = await fetchData();
 
@@ -432,7 +446,8 @@ async function updateDashboard() {
     else if(modoAtual === 'mar') labelMes = "Março";
     else if(modoAtual === 'abr') labelMes = "Abril";
     else if(modoAtual === 'mai') labelMes = "Maio";
-    else if(modoAtual === 'jun') labelMes = "Junho"; // [COPA DO MUNDO]
+    else if(modoAtual === 'jun') labelMes = "Junho";
+    else if(modoAtual === 'jul') labelMes = "Julho";
     document.getElementById('kpi-titulo-mes').innerText = `(${labelMes})`;
 
     document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -448,18 +463,10 @@ async function updateDashboard() {
     
     let backgroundColorsPizza;
     if (isWorldCupMode) {
-        // [COPA DO MUNDO] Cores vibrantes únicas para cada vendedor
         const worldCupColors = [
-            '#009c3b', // Verde Bandeira
-            '#ffdf00', // Amarelo Ouro
-            '#002776', // Azul Escuro
-            '#87CEEB', // Azul Canarinho
-            '#32CD32', // Verde Limão
-            '#FFFFFF', // Branco
-            '#FFD700', // Gold
-            '#00FA9A', // Lime Green
-            '#1E90FF', // Dodger Blue
-            '#F0E68C'  // Khaki
+            '#009c3b', '#ffdf00', '#002776', '#87CEEB', 
+            '#32CD32', '#FFFFFF', '#FFD700', '#00FA9A', 
+            '#1E90FF', '#F0E68C'
         ];
         backgroundColorsPizza = dadosVendedores.map((v, index) => worldCupColors[index % worldCupColors.length]);
     } else {
@@ -529,17 +536,8 @@ function processarAutoScroll() {
 
 async function initDashboard() {
     document.getElementById('select-mes').value = modoAtual;
-    
-    // [COPA DO MUNDO] Ativação da classe de tema e título
-    if (isWorldCupMode) {
-        document.body.classList.add('copa-mundo-theme');
-        const tituloMain = document.getElementById('navbar-title-main');
-        if (tituloMain) {
-            tituloMain.innerText = "🏁 GP do Atacado - Edição Copa do Mundo Brunx 🏁";
-        }
-    }
-
-    await preloadShieldImages(); // Preload images first
+    updateTheme();
+    await preloadShieldImages();
     await updateDashboard();
     dispararConfetes();
     atualizarBotaoScroll();
@@ -553,10 +551,9 @@ function abrirPerfil(nome, valor, index) {
     let time = "Time Desconhecido";
     let nomeArquivoEscudo = "";
     
-    // [COPA DO MUNDO] Ajustar o time se for modo Copa
     if (isWorldCupMode) {
         time = "Seleção Brasileira";
-        nomeArquivoEscudo = "Brasil HD.png"; // Escudo do Brasil
+        nomeArquivoEscudo = "Brasil HD.png";
     } else {
         if (n.includes('everton')) { time = "Corinthians (Timão)"; nomeArquivoEscudo = "Corinthians HD.png"; }
         else if (n.includes('maevelim')) { time = "Botafogo (Fogão)"; nomeArquivoEscudo = "Botafogo HD.png"; }
@@ -647,14 +644,14 @@ function abrirPerfil(nome, valor, index) {
 
     const escudoImgEl = document.getElementById('perfil-escudo-img');
     if (time !== "Time Desconhecido") {
-        const escudoUrl = `assets/Images/EscudosTimes/${nomeArquivoEscudo}`;
+        const escudoUrl = `assets/Imagens/EscudosTimes/${nomeArquivoEscudo}`;
         escudoImgEl.src = escudoUrl;
         escudoImgEl.onerror = function() { 
-            this.style.display = 'none'; // Hide if shield not found
+            this.style.display = 'none';
         };
-        escudoImgEl.style.display = 'block'; // Show if found
+        escudoImgEl.style.display = 'block';
     } else {
-        escudoImgEl.style.display = 'none'; // Hide for unknown team
+        escudoImgEl.style.display = 'none';
     }
 
     var bsOffcanvas = new bootstrap.Offcanvas(document.getElementById('painelPerfil'));
@@ -691,13 +688,12 @@ function getTeamPattern(ctx, nome) {
     }
 
     const patternCanvas = document.createElement('canvas');
-    const size = 20; // Tamanho pequeno para o padrão da legenda
+    const size = 20;
     patternCanvas.width = size;
     patternCanvas.height = size;
     const pCtx = patternCanvas.getContext('2d');
     const step = size / colors.length;
 
-    // Desenha apenas as listras
     colors.forEach((color, i) => {
         pCtx.fillStyle = color;
         if (horizontal) {
@@ -726,7 +722,6 @@ function dispararConfetes() {
 
 function renderizarCorrida(vendedores) {
     const container = document.getElementById('pista-corrida');
-    // We clear the track but need to keep the background video if it exists
     const videoHtml = isWorldCupMode ? '<video id="video-fundo-pista" src="assets/Videos/Videocopadomundo.mp4" autoplay loop muted playsinline></video>' : '';
     container.innerHTML = videoHtml + '<div class="linha-chegada"></div>';
     const maiorValor = vendedores.length > 0 ? vendedores[0].valor : 1;
@@ -798,7 +793,6 @@ function gerarNarracao(lider, ultimo, meio) {
 
     let frases = [];
 
-    // [COPA DO MUNDO] Frases temáticas para a narração
     if (isWorldCupMode) {
         frases = [
             `É GOOOL! RUMO AO HEXA! ${lider.nome} disparou na liderança e não quer saber de conversa!`,
