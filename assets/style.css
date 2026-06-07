@@ -219,8 +219,8 @@ h1, h2, h3, .navbar-brand, .kpi-titulo {
 
 /* [COPA DO MUNDO] Estilos do tema Verde e Amarelo */
 body.copa-mundo-theme {
-    /* Gradiente linear triplo com Azul da Seleção */
-    background: linear-gradient(135deg, #009c3b 0%, #002776 50%, #101040 100%);
+    /* Gradiente linear começando no azul, passando pelo verde e terminando no amarelo */
+    background: linear-gradient(135deg, #002776 0%, #009c3b 50%, #ffdf00 100%);
 }
 
 .copa-mundo-theme .navbar {
