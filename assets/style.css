@@ -89,6 +89,19 @@ h1, h2, h3, .navbar-brand, .kpi-titulo {
     padding: 20px 10px;
     box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
     position: relative;
+    overflow: hidden; /* Importante para o vídeo não vazar */
+}
+
+/* [COPA DO MUNDO] Vídeo de fundo na pista */
+#video-fundo-pista {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+    opacity: 0.6;
 }
 
 .raia {
@@ -98,6 +111,7 @@ h1, h2, h3, .navbar-brand, .kpi-titulo {
     margin-bottom: 10px;
     display: flex;
     align-items: center;
+    z-index: 2; /* Para ficar acima do vídeo */
 }
 
 .raia:last-child {
@@ -201,4 +215,49 @@ h1, h2, h3, .navbar-brand, .kpi-titulo {
     color: #fff;
     font-weight: bold;
     text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+}
+
+/* [COPA DO MUNDO] Estilos do tema Verde e Amarelo */
+body.copa-mundo-theme {
+    background: linear-gradient(135deg, #009c3b 0%, #ffdf00 100%); /* Gradiente Verde e Amarelo */
+}
+
+.copa-mundo-theme .navbar {
+    background: linear-gradient(90deg, #005c25 0%, #003d16 100%);
+    box-shadow: 0 4px 0 #002e10;
+}
+
+.copa-mundo-theme .navbar-brand {
+    color: #ffdf00 !important;
+    text-shadow: 3px 3px 0 #005c25;
+}
+
+.copa-mundo-theme .narrador-box {
+    background: #fff;
+    border-color: #005c25;
+    box-shadow: 8px 8px 0 #003d16;
+}
+
+.copa-mundo-theme .narrador-texto {
+    color: #005c25;
+}
+
+.copa-mundo-theme .pista-container {
+    background-color: #007f2d; /* Tom de verde mais escuro para o gramado */
+}
+
+.copa-mundo-theme .kpi-card-custom.border-success { border-color: #009c3b !important; }
+.copa-mundo-theme .kpi-card-custom.border-warning { border-color: #ffdf00 !important; }
+.copa-mundo-theme .kpi-card-custom.border-primary { border-color: #002776 !important; } /* Azul da bandeira */
+
+.copa-mundo-theme .kpi-valor.text-success { color: #009c3b !important; }
+.copa-mundo-theme .kpi-valor.text-warning { color: #f0c400 !important; }
+.copa-mundo-theme .kpi-valor.text-primary { color: #002776 !important; }
+
+.copa-mundo-theme #tabela-classificacao thead {
+    background-color: #005c25;
+}
+
+.copa-mundo-theme .posicao-badge {
+    background-color: #002776 !important; /* Azul para todos os badges de posição */
 }

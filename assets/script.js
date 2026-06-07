@@ -1,506 +1,563 @@
+// [COPA DO MUNDO] Variável de controle do tema. Mude para false para desativar.
+let isWorldCupMode = true;
 
-    Chart.register(ChartDataLabels);
+Chart.register(ChartDataLabels);
 
-    // Define o plugin para desenhar os escudos nas fatias do gráfico de pizza
-    const shieldOnPieSlicesPlugin = {
-        id: 'shieldOnPieSlices',
-        afterDatasetsDraw: (chart) => {
-            if (chart.config.type !== 'pie' && chart.config.type !== 'doughnut') {
-                return;
+// Define o plugin para desenhar os escudos nas fatias do gráfico de pizza
+const shieldOnPieSlicesPlugin = {
+    id: 'shieldOnPieSlices',
+    afterDatasetsDraw: (chart) => {
+        if (chart.config.type !== 'pie' && chart.config.type !== 'doughnut') {
+            return;
+        }
+
+        const { ctx, chartArea: { left, top, right, bottom } } = chart;
+        const centerX = (left + right) / 2;
+        const centerY = (top + bottom) / 2;
+
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+            meta.data.forEach((arc, index) => {
+                // Desenha apenas se a fatia for visível
+                if (arc.outerRadius < 1 || arc.innerRadius === undefined) return;
+
+                const { startAngle, endAngle, outerRadius, innerRadius } = arc;
+
+                // Calcula o ponto médio do arco para posicionar o escudo
+                const midAngle = (startAngle + endAngle) / 2;
+                // Ajusta o raio para posicionar o escudo mais para dentro da fatia
+                const shieldPlacementRadius = outerRadius * 0.2; // 20% do raio externo
+                const x = centerX + Math.cos(midAngle) * shieldPlacementRadius;
+                const y = centerY + Math.sin(midAngle) * shieldPlacementRadius;
+
+                // Obtém o label para esta fatia para determinar o time
+                const label = chart.data.labels[index];
+                const baseTeamName = getBaseTeamNameFromPlayer(label);
+                const shieldImg = teamShieldImages[baseTeamName];
+
+                if (shieldImg) {
+                    // Reduz o tamanho do escudo para evitar sobreposição com os rótulos
+                    const shieldSize = outerRadius * 0.15; // 15% do raio externo
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.drawImage(shieldImg, -shieldSize / 2, -shieldSize / 2, shieldSize, shieldSize);
+                    ctx.restore();
+                }
+            });
+        });
+    }
+};
+
+// Registra o plugin ChartDataLabels (já existente) e o novo plugin de escudo
+Chart.register(ChartDataLabels, shieldOnPieSlicesPlugin);
+
+
+function parseCurrency(value) {
+    if (!value || typeof value !== 'string') return 0;
+    let s = value.replace(/R\$|\s/g, '').trim();
+
+    const lastDot = s.lastIndexOf('.');
+    const lastComma = s.lastIndexOf(',');
+
+    // No separators, just parse
+    if (lastDot === -1 && lastComma === -1) {
+        return parseFloat(s) || 0;
+    }
+
+    // Determine which is the likely decimal separator based on 2 digits for cents
+    let decimalSeparator = null;
+    if (s.length - lastComma - 1 === 2) {
+        decimalSeparator = ',';
+    } else if (s.length - lastDot - 1 === 2) {
+        decimalSeparator = '.';
+    }
+
+    // If we found a likely decimal separator
+    if (decimalSeparator === ',') {
+        return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    }
+    if (decimalSeparator === '.') {
+        return parseFloat(s.replace(/,/g, ''));
+    }
+
+    // If no clear decimal separator, it's likely an integer with thousands separators.
+    // Just remove all separators.
+    return parseFloat(s.replace(/[.,]/g, ''));
+}
+
+// Configuração dos Links por Mês
+const urlsPorMes = {
+    'jan': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=0&single=true&output=csv',
+    'fev': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=431147865&single=true&output=csv',
+    'mar': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=837458743&single=true&output=csv',
+    'abr': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=938359542&single=true&output=csv',
+    'mai': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=1462491173&single=true&output=csv',
+    // [COPA DO MUNDO] Adicionada a URL de Junho
+    'jun': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=548050871&single=true&output=csv'
+};
+
+// [COPA DO MUNDO] Mês inicial padrão alterado para Junho
+let modoAtual = 'jun'; 
+let totalParticipantes = 0;
+let chartInstance = null;
+let rankingAnterior = [];
+let historicoUltrapassagens = [];
+
+// Variáveis globais para o Auto Scroll
+let autoScrollEnabled = false;
+let scrollDirection = 1;
+let isPausedAtEdge = false;
+
+// Global map for pre-loaded shield images
+const teamShieldImages = {};
+
+// Helper to get the base team name from player name
+function getBaseTeamNameFromPlayer(playerName) {
+    const n = playerName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    // In World Cup mode, shield is the Brazilian flag for everyone
+    if (isWorldCupMode) return "Brasil";
+
+    if (n.includes('everton')) return "Corinthians";
+    else if (n.includes('maevelim')) return "Botafogo";
+    else if (n.includes('emily')) return "Grêmio";
+    else if (n.includes('dariele')) return "Fluminense";
+    else if (n.includes('daniele')) return "Cruzeiro";
+    else if (n.includes('bruno')) return "Flamengo";
+    else if (n.includes('marlon')) return "São Paulo";
+    else if (n.includes('maria')) return "Santos";
+    else if (n.includes('leandra') || n.includes('lelandra')) return "Bahia";
+    else if (n.includes('vitoria')) return "Mirassol-SP"; // Use "Mirassol-SP" for consistency with filename
+    return null;
+}
+
+// Helper to get shield filename from base team name
+function getShieldFileNameFromBaseTeamName(baseTeamName) {
+    if (baseTeamName) {
+        if (baseTeamName === "Brasil") return "Brasil HD.png"; // Assume this file exists or will be added
+        return `${baseTeamName} HD.png`;
+    }
+    return null;
+}
+
+// Function to load all shield images
+async function preloadShieldImages() {
+    const baseTeamNames = [
+        "Corinthians", "Botafogo", "Grêmio", "Fluminense", "Flamengo",
+        "São Paulo", "Santos", "Bahia", "Mirassol-SP", "Cruzeiro", "Brasil"
+    ];
+    const promises = baseTeamNames.map(baseTeam => {
+        const fileName = getShieldFileNameFromBaseTeamName(baseTeam);
+        if (fileName) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = `assets/Images/EscudosTimes/${fileName}`;
+                img.onload = () => {
+                    teamShieldImages[baseTeam] = img;
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.warn(`Failed to load shield image for ${baseTeam}: ${img.src}`);
+                    resolve(); // Resolve even on error to not block
+                };
+            });
+        }
+        return Promise.resolve();
+    });
+    await Promise.all(promises);
+}
+
+// Função para trocar o mês
+function mudarMes(mes) {
+    modoAtual = mes;
+
+    // Mostra loading e recarrega
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('dashboard-content').style.display = 'none';
+
+    updateDashboard();
+}
+
+// Função auxiliar para baixar e processar um CSV
+async function baixarCSV(url, mes) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Falha ao baixar');
+        const data = await response.text();
+        const rows = data.split('\n');
+        let resultados = [];
+
+        if (mes === 'abr') {
+            const mapeamentoAbril = {
+                "BRUNO": 0, "DARIELE": 1, "DANIELE": 2, "EMILY": 3,
+                "EVERTON": 4, "LEANDRA": 7, "MAEVELIM": 8, "MARLON": 9,
+                "MARIA": 10, "VITORIA": 11
+            };
+
+            for (const [nomeVendedor, rowIndex] of Object.entries(mapeamentoAbril)) {
+                let valor = 0; 
+                if (rows[rowIndex]) {
+                    const row = rows[rowIndex];
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
+                    valor = parseCurrency(valorString);
+                }
+                resultados.push({ nome: nomeVendedor, valor: valor });
             }
 
-            const { ctx, chartArea: { left, top, right, bottom } } = chart;
-            const centerX = (left + right) / 2;
-            const centerY = (top + bottom) / 2;
+        } else if (mes === 'mai') {
+            const mapeamentoMaio = {
+                "BRUNO": 0, "DARIELE": 1, "DANIELE": 2, "EMILY": 3,
+                "EVERTON": 4, "LEANDRA": 7, "MAEVELIM": 8, "MARLON": 9,
+                "MARIA": 10, "VITORIA": 11
+            };
 
-            chart.data.datasets.forEach((dataset, datasetIndex) => {
-                const meta = chart.getDatasetMeta(datasetIndex);
-                meta.data.forEach((arc, index) => {
-                    // Desenha apenas se a fatia for visível
-                    if (arc.outerRadius < 1 || arc.innerRadius === undefined) return;
+            for (const [nomeVendedor, rowIndex] of Object.entries(mapeamentoMaio)) {
+                let valor = 0; 
+                if (rows[rowIndex]) {
+                    const row = rows[rowIndex];
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
+                    valor = parseCurrency(valorString);
+                }
+                resultados.push({ nome: nomeVendedor, valor: valor });
+            }
 
-                    const { startAngle, endAngle, outerRadius, innerRadius } = arc;
+        } else {
+            // Lógica genérica para os outros meses (incluindo jun)
+            rows.forEach(row => {
+                if (!row || row.trim() === '') return;
+                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
-                    // Calcula o ponto médio do arco para posicionar o escudo
-                    const midAngle = (startAngle + endAngle) / 2;
-                    // Ajusta o raio para posicionar o escudo mais para dentro da fatia
-                    const shieldPlacementRadius = outerRadius * 0.2; // 20% do raio externo
-                    const x = centerX + Math.cos(midAngle) * shieldPlacementRadius;
-                    const y = centerY + Math.sin(midAngle) * shieldPlacementRadius;
+                let nome = cols[0] ? cols[0].replace(/"/g, '').trim().toUpperCase() : "";
+                let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
 
-                    // Obtém o label para esta fatia para determinar o time
-                    const label = chart.data.labels[index];
-                    const baseTeamName = getBaseTeamNameFromPlayer(label);
-                    const shieldImg = teamShieldImages[baseTeamName];
+                // Removemos o " O." do Bruno se vier na planilha para padronizar
+                if (nome === "BRUNO O.") {
+                    nome = "BRUNO";
+                }
 
-                    if (shieldImg) {
-                        // Reduz o tamanho do escudo para evitar sobreposição com os rótulos
-                        const shieldSize = outerRadius * 0.15; // 15% do raio externo
-                        ctx.save();
-                        ctx.translate(x, y);
-                        ctx.drawImage(shieldImg, -shieldSize / 2, -shieldSize / 2, shieldSize, shieldSize);
-                        ctx.restore();
+                // [COPA DO MUNDO] Filtro: remover Marlon, Dariele, Maria e Janaina de Junho
+                if (mes === 'jun' && (nome === 'MARLON' || nome === 'DARIELE' || nome === 'MARIA' || nome === 'JANAINA')) {
+                    return; // Pula a iteração, ignorando esses vendedores
+                }
+
+                const valor = parseCurrency(valorString);
+
+                if (nome && nome.length > 2 && !isNaN(valor) && valor > 0) {
+                    resultados.push({ nome: nome, valor: valor });
+                }
+            });
+        }
+        return resultados;
+    } catch (error) {
+        console.error("Erro ao baixar CSV:", url, error);
+        return [];
+    }
+}
+
+async function fetchData() {
+    try {
+        let dadosVendedores = [];
+        let totalFaturado = 0;
+
+        if (modoAtual === 'geral') {
+            // Modo Geral: Baixa todos e soma
+            let mapaVendas = {}; 
+
+            const promises = Object.entries(urlsPorMes).map(([mes, url]) => baixarCSV(url, mes));
+            const resultadosArrays = await Promise.all(promises);
+
+            resultadosArrays.forEach(listaMes => {
+                listaMes.forEach(item => {
+                    let nomeNormalizado = item.nome.toUpperCase();
+                    if (nomeNormalizado === 'BRUNO O.') {
+                        nomeNormalizado = 'BRUNO';
+                    }
+                    
+                    if (mapaVendas[nomeNormalizado]) {
+                        mapaVendas[nomeNormalizado] += item.valor;
+                    } else {
+                        mapaVendas[nomeNormalizado] = item.valor;
                     }
                 });
             });
-        }
-    };
 
-    // Registra o plugin ChartDataLabels (já existente) e o novo plugin de escudo
-    Chart.register(ChartDataLabels, shieldOnPieSlicesPlugin);
+            // Converte de volta para array
+            for (const [nome, valor] of Object.entries(mapaVendas)) {
+                dadosVendedores.push({ nome, valor });
+                totalFaturado += valor;
+            }
 
-
-    function parseCurrency(value) {
-        if (!value || typeof value !== 'string') return 0;
-        let s = value.replace(/R\$|\s/g, '').trim();
-
-        const lastDot = s.lastIndexOf('.');
-        const lastComma = s.lastIndexOf(',');
-
-        // No separators, just parse
-        if (lastDot === -1 && lastComma === -1) {
-            return parseFloat(s) || 0;
+        } else {
+            // Modo Mês Específico
+            const url = urlsPorMes[modoAtual];
+            dadosVendedores = await baixarCSV(url, modoAtual);
+            dadosVendedores.forEach(d => totalFaturado += d.valor);
         }
 
-        // Determine which is the likely decimal separator based on 2 digits for cents
-        let decimalSeparator = null;
-        if (s.length - lastComma - 1 === 2) {
-            decimalSeparator = ',';
-        } else if (s.length - lastDot - 1 === 2) {
-            decimalSeparator = '.';
-        }
+        if (dadosVendedores.length === 0) throw new Error("Nenhum dado encontrado.");
 
-        // If we found a likely decimal separator
-        if (decimalSeparator === ',') {
-            return parseFloat(s.replace(/\./g, '').replace(',', '.'));
-        }
-        if (decimalSeparator === '.') {
-            return parseFloat(s.replace(/,/g, ''));
-        }
+        dadosVendedores.sort((a, b) => b.valor - a.valor);
+        totalParticipantes = dadosVendedores.length;
 
-        // If no clear decimal separator, it's likely an integer with thousands separators.
-        // Just remove all separators.
-        return parseFloat(s.replace(/[.,]/g, ''));
-    }
+        return { dadosVendedores, totalFaturado };
 
-    // Configuração dos Links por Mês
-    const urlsPorMes = {
-        'jan': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=0&single=true&output=csv',
-        'fev': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=431147865&single=true&output=csv',
-        'mar': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=837458743&single=true&output=csv',
-        'abr': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=938359542&single=true&output=csv',
-        'mai': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=1462491173&single=true&output=csv'
-    };
-
-    let modoAtual = 'mai'; // Começa em Maio
-    let totalParticipantes = 0;
-    let chartInstance = null;
-    let rankingAnterior = [];
-    let historicoUltrapassagens = [];
-
-    // Variáveis globais para o Auto Scroll
-    let autoScrollEnabled = false;
-    let scrollDirection = 1;
-    let isPausedAtEdge = false;
-
-    // Global map for pre-loaded shield images
-    const teamShieldImages = {};
-
-    // Helper to get the base team name from player name
-    function getBaseTeamNameFromPlayer(playerName) {
-        const n = playerName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (n.includes('everton')) return "Corinthians";
-        else if (n.includes('maevelim')) return "Botafogo";
-        else if (n.includes('emily')) return "Grêmio";
-        else if (n.includes('dariele')) return "Fluminense";
-        else if (n.includes('daniele')) return "Cruzeiro";
-        else if (n.includes('bruno')) return "Flamengo";
-        else if (n.includes('marlon')) return "São Paulo";
-        else if (n.includes('maria')) return "Santos";
-        else if (n.includes('leandra') || n.includes('lelandra')) return "Bahia";
-        else if (n.includes('vitoria')) return "Mirassol-SP"; // Use "Mirassol-SP" for consistency with filename
+    } catch (error) {
+        console.error("Erro ao buscar dados:", error);
         return null;
     }
+}
 
-    // Helper to get shield filename from base team name
-    function getShieldFileNameFromBaseTeamName(baseTeamName) {
-        if (baseTeamName) {
-            return `${baseTeamName} HD.png`;
+// [COPA DO MUNDO] Nova função para resolver a URL completa do Avatar
+function getAvatarUrl(nome) {
+    const n = nome.toUpperCase();
+    
+    if (isWorldCupMode) {
+        let nomeBrasil = "";
+        if (n.includes('BRUNO')) nomeBrasil = 'Bruno';
+        else if (n.includes('EMILY')) nomeBrasil = 'Emili';
+        else if (n.includes('DANIELE')) nomeBrasil = 'Daniele';
+        else if (n.includes('EVERTON')) nomeBrasil = 'Everton';
+        else if (n.includes('LEANDRA') || n.includes('LELANDRA')) nomeBrasil = 'Leandra';
+        else if (n.includes('VITORIA')) nomeBrasil = 'Vitória';
+        else if (n.includes('MAEVELIM')) nomeBrasil = 'Maevelim';
+        else {
+            let primeiroNome = nome.trim().split(' ')[0];
+            primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+            nomeBrasil = primeiroNome;
         }
-        return null;
+        return `assets/Imagens_Brasil/${nomeBrasil}_Brasil.png`;
     }
 
-    // Function to load all shield images
-    async function preloadShieldImages() {
-        const baseTeamNames = [
-            "Corinthians", "Botafogo", "Grêmio", "Fluminense", "Flamengo",
-            "São Paulo", "Santos", "Bahia", "Mirassol-SP", "Cruzeiro"
-        ];
-        const promises = baseTeamNames.map(baseTeam => {
-            const fileName = getShieldFileNameFromBaseTeamName(baseTeam);
-            if (fileName) {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.src = `assets/Images/EscudosTimes/${fileName}`;
-                    img.onload = () => {
-                        teamShieldImages[baseTeam] = img;
-                        resolve();
-                    };
-                    img.onerror = () => {
-                        console.warn(`Failed to load shield image for ${baseTeam}: ${img.src}`);
-                        resolve(); // Resolve even on error to not block
-                    };
-                });
-            }
-            return Promise.resolve();
-        });
-        await Promise.all(promises);
-    }
-
-    // Função para trocar o mês
-    function mudarMes(mes) {
-        modoAtual = mes;
-
-        // Mostra loading e recarrega
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('dashboard-content').style.display = 'none';
-
-        updateDashboard();
-    }
-
-    // Função auxiliar para baixar e processar um CSV
-    async function baixarCSV(url, mes) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Falha ao baixar');
-            const data = await response.text();
-            const rows = data.split('\n');
-            let resultados = [];
-
-            if (mes === 'abr') {
-                const mapeamentoAbril = {
-                    "BRUNO": 0,
-                    "DARIELE": 1,
-                    "DANIELE": 2,
-                    "EMILY": 3,
-                    "EVERTON": 4,
-                    "LEANDRA": 7,
-                    "MAEVELIM": 8,
-                    "MARLON": 9,
-                    "MARIA": 10,
-                    "VITORIA": 11
-                };
-
-                for (const [nomeVendedor, rowIndex] of Object.entries(mapeamentoAbril)) {
-                    let valor = 0; // Default to 0
-                    if (rows[rowIndex]) {
-                        const row = rows[rowIndex];
-                        const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                        let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
-                        valor = parseCurrency(valorString);
-                    }
-                    
-                    resultados.push({ nome: nomeVendedor, valor: valor });
-                }
-
-            } else if (mes === 'mai') {
-                const mapeamentoMaio = {
-                    "BRUNO": 0, // a1 -> índice 0
-                    "DARIELE": 1, // a2 -> índice 1
-                    "DANIELE": 2, // a3 -> índice 2
-                    "EMILY": 3, // a4 -> índice 3
-                    "EVERTON": 4, // a5 -> índice 4
-                    "LEANDRA": 7, // a8 -> índice 7 (0-based)
-                    "MAEVELIM": 8, // a9 -> índice 8
-                    "MARLON": 9, // a10 -> índice 9
-                    "MARIA": 10, // a11 -> índice 10
-                    "VITORIA": 11 // a12 -> índice 11
-                };
-
-                for (const [nomeVendedor, rowIndex] of Object.entries(mapeamentoMaio)) {
-                    let valor = 0; // Default to 0
-                    if (rows[rowIndex]) {
-                        const row = rows[rowIndex];
-                        const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                        let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
-                        valor = parseCurrency(valorString);
-                    }
-                    
-                    resultados.push({ nome: nomeVendedor, valor: valor });
-                }
-
-            } else {
-                // Lógica genérica para os outros meses
-                rows.forEach(row => {
-                    if (!row || row.trim() === '') return;
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-
-                    let nome = cols[0] ? cols[0].replace(/"/g, '').trim().toUpperCase() : "";
-                    let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
-
-                    // Removemos o " O." do Bruno se vier na planilha para padronizar
-                    if (nome === "BRUNO O.") {
-                        nome = "BRUNO";
-                    }
-
-                    const valor = parseCurrency(valorString);
-
-                    if (nome && nome.length > 2 && !isNaN(valor) && valor > 0) {
-                        resultados.push({ nome: nome, valor: valor });
-                    }
-                });
-            }
-            return resultados;
-        } catch (error) {
-            console.error("Erro ao baixar CSV:", url, error);
-            return [];
-        }
-    }
-
-    async function fetchData() {
-        try {
-            let dadosVendedores = [];
-            let totalFaturado = 0;
-
-            if (modoAtual === 'geral') {
-                // Modo Geral: Baixa todos e soma
-                let mapaVendas = {}; // Objeto para somar: { "MARLON": 5000, "EVERTON": 3000 }
-
-                const promises = Object.entries(urlsPorMes).map(([mes, url]) => baixarCSV(url, mes));
-                const resultadosArrays = await Promise.all(promises);
-
-                resultadosArrays.forEach(listaMes => {
-                    listaMes.forEach(item => {
-                        let nomeNormalizado = item.nome.toUpperCase();
-                        if (nomeNormalizado === 'BRUNO O.') {
-                            nomeNormalizado = 'BRUNO';
-                        }
-                        
-                        if (mapaVendas[nomeNormalizado]) {
-                            mapaVendas[nomeNormalizado] += item.valor;
-                        } else {
-                            mapaVendas[nomeNormalizado] = item.valor;
-                        }
-                    });
-                });
-
-                // Converte de volta para array
-                for (const [nome, valor] of Object.entries(mapaVendas)) {
-                    dadosVendedores.push({ nome, valor });
-                    totalFaturado += valor;
-                }
-
-            } else {
-                // Modo Mês Específico
-                const url = urlsPorMes[modoAtual];
-                dadosVendedores = await baixarCSV(url, modoAtual);
-                dadosVendedores.forEach(d => totalFaturado += d.valor);
-            }
-
-            if (dadosVendedores.length === 0) throw new Error("Nenhum dado encontrado.");
-
-            dadosVendedores.sort((a, b) => b.valor - a.valor);
-            totalParticipantes = dadosVendedores.length;
-
-            return { dadosVendedores, totalFaturado };
-
-        } catch (error) {
-            console.error("Erro ao buscar dados:", error);
-            return null;
-        }
-    }
-
-    function getNomeArquivo(nome) {
-        const n = nome.toUpperCase();
-        // Casos especiais para corresponder aos nomes dos arquivos
-        if (n === 'MARIA') return 'Maria.png';
-        if (n === 'VITORIA') return 'Vitoria.png';
-        if (n === 'LEANDRA') return 'Leandra.png';
-        if (n === 'DANIELE') return 'Daniele.png'; // Add special case for Daniele if needed
-        
-        // Lógica padrão para os outros
+    // Lógica normal de clubes
+    let nomeArquivo = "";
+    if (n === 'MARIA') nomeArquivo = 'Maria.png';
+    else if (n === 'VITORIA') nomeArquivo = 'Vitoria.png';
+    else if (n === 'LEANDRA') nomeArquivo = 'Leandra.png';
+    else if (n === 'DANIELE') nomeArquivo = 'Daniele.png';
+    else {
         let primeiroNome = nome.trim().split(' ')[0];
         primeiroNome = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
         primeiroNome = primeiroNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        return primeiroNome + '.png';
+        nomeArquivo = primeiroNome + '.png';
     }
+    return `assets/Images/Imagens_Cavalinhos/${nomeArquivo}`;
+}
 
-    function detectarUltrapassagens(rankingAtual) {
-        if (rankingAnterior.length === 0) {
-            rankingAnterior = rankingAtual.map(v => ({ ...v }));
-            return;
-        }
-
-        const mapaPosicaoAnterior = new Map(rankingAnterior.map((v, i) => [v.nome, i]));
-
-        rankingAtual.forEach((vendedor, posAtual) => {
-            const posAnterior = mapaPosicaoAnterior.get(vendedor.nome);
-            if (posAnterior !== undefined && posAtual < posAnterior) {
-                const ultrapassado = rankingAnterior[posAtual];
-                const ultrapassou = vendedor.nome;
-                const quemFoiUltrapassado = ultrapassado.nome;
-
-                if (ultrapassou !== quemFoiUltrapassado) {
-                    const agora = new Date();
-                    const dataFormatada = agora.toLocaleDateString();
-                    const evento = {
-                        data: dataFormatada,
-                        descricao: `🔥 ${ultrapassou} passou ${quemFoiUltrapassado}!`
-                    };
-                    historicoUltrapassagens.unshift(evento);
-                }
-            }
-        });
-
-        if (historicoUltrapassagens.length > 5) {
-            historicoUltrapassagens.pop();
-        }
-
-        renderizarHistorico();
+function detectarUltrapassagens(rankingAtual) {
+    if (rankingAnterior.length === 0) {
         rankingAnterior = rankingAtual.map(v => ({ ...v }));
+        return;
     }
 
-    function renderizarHistorico() {
-        const container = document.getElementById('historico-ultrapassagens');
-        if (!container) return;
+    const mapaPosicaoAnterior = new Map(rankingAnterior.map((v, i) => [v.nome, i]));
 
-        if (historicoUltrapassagens.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted">Aguardando a primeira ultrapassagem...</p>';
-            return;
+    rankingAtual.forEach((vendedor, posAtual) => {
+        const posAnterior = mapaPosicaoAnterior.get(vendedor.nome);
+        if (posAnterior !== undefined && posAtual < posAnterior) {
+            const ultrapassado = rankingAnterior[posAtual];
+            const ultrapassou = vendedor.nome;
+            const quemFoiUltrapassado = ultrapassado.nome;
+
+            if (ultrapassou !== quemFoiUltrapassado) {
+                const agora = new Date();
+                const dataFormatada = agora.toLocaleDateString();
+                const evento = {
+                    data: dataFormatada,
+                    descricao: `🔥 ${ultrapassou} passou ${quemFoiUltrapassado}!`
+                };
+                historicoUltrapassagens.unshift(evento);
+            }
         }
+    });
 
-        const tabelaHtml = `
-            <table class="table table-striped table-sm">
-                <thead>
+    if (historicoUltrapassagens.length > 5) {
+        historicoUltrapassagens.pop();
+    }
+
+    renderizarHistorico();
+    rankingAnterior = rankingAtual.map(v => ({ ...v }));
+}
+
+function renderizarHistorico() {
+    const container = document.getElementById('historico-ultrapassagens');
+    if (!container) return;
+
+    if (historicoUltrapassagens.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted">Aguardando a primeira ultrapassagem...</p>';
+        return;
+    }
+
+    const tabelaHtml = `
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th scope="col">Data</th>
+                    <th scope="col">Evento</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${historicoUltrapassagens.map(item => `
                     <tr>
-                        <th scope="col">Data</th>
-                        <th scope="col">Evento</th>
+                        <td>${item.data}</td>
+                        <td>${item.descricao}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    ${historicoUltrapassagens.map(item => `
-                        <tr>
-                            <td>${item.data}</td>
-                            <td>${item.descricao}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
-        container.innerHTML = tabelaHtml;
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    container.innerHTML = tabelaHtml;
+}
+
+async function updateDashboard() {
+    const result = await fetchData();
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard-content').style.display = 'block';
+
+    if (!result) return;
+
+    const { dadosVendedores, totalFaturado } = result;
+    const lider = dadosVendedores[0];
+    const ultimo = dadosVendedores[dadosVendedores.length - 1];
+    const meio = dadosVendedores.length > 2 ? dadosVendedores[Math.floor(dadosVendedores.length / 2)] : null;
+
+    detectarUltrapassagens(dadosVendedores);
+
+    let labelMes = "";
+    if(modoAtual === 'geral') labelMes = "Geral (Ano)";
+    else if(modoAtual === 'jan') labelMes = "Janeiro";
+    else if(modoAtual === 'fev') labelMes = "Fevereiro";
+    else if(modoAtual === 'mar') labelMes = "Março";
+    else if(modoAtual === 'abr') labelMes = "Abril";
+    else if(modoAtual === 'mai') labelMes = "Maio";
+    else if(modoAtual === 'jun') labelMes = "Junho"; // [COPA DO MUNDO]
+    document.getElementById('kpi-titulo-mes').innerText = `(${labelMes})`;
+
+    document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    document.getElementById('kpi-top-vendedor').innerText = lider ? lider.nome : "-";
+
+    const hoje = new Date();
+    document.getElementById('data-atualizacao').innerText = hoje.toLocaleDateString() + " " + hoje.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    renderizarCorrida(dadosVendedores);
+    renderizarTabela(dadosVendedores);
+
+    const ctxPie = document.getElementById('pieChart').getContext('2d');
+    
+    let backgroundColorsPizza;
+    if (isWorldCupMode) {
+        // [COPA DO MUNDO] Cores vibrantes únicas para cada vendedor
+        const worldCupColors = [
+            '#009c3b', // Verde Bandeira
+            '#ffdf00', // Amarelo Ouro
+            '#002776', // Azul Escuro
+            '#87CEEB', // Azul Canarinho
+            '#32CD32', // Verde Limão
+            '#FFFFFF', // Branco
+            '#FFD700', // Gold
+            '#00FA9A', // Lime Green
+            '#1E90FF', // Dodger Blue
+            '#F0E68C'  // Khaki
+        ];
+        backgroundColorsPizza = dadosVendedores.map((v, index) => worldCupColors[index % worldCupColors.length]);
+    } else {
+        backgroundColorsPizza = dadosVendedores.map(v => getTeamPattern(ctxPie, v.nome));
     }
+    
+    renderPieChart(
+        dadosVendedores.map(d => d.nome),
+        dadosVendedores.map(d => d.valor),
+        backgroundColorsPizza
+    );
 
-    async function updateDashboard() {
-        const result = await fetchData();
+    gerarNarracao(lider, ultimo, meio);
+}
 
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('dashboard-content').style.display = 'block';
+function toggleAutoScroll() {
+    autoScrollEnabled = !autoScrollEnabled;
+    atualizarBotaoScroll();
 
-        if (!result) return;
-
-        const { dadosVendedores, totalFaturado } = result;
-        const lider = dadosVendedores[0];
-        const ultimo = dadosVendedores[dadosVendedores.length - 1];
-        const meio = dadosVendedores.length > 2 ? dadosVendedores[Math.floor(dadosVendedores.length / 2)] : null;
-
-        detectarUltrapassagens(dadosVendedores);
-
-        let labelMes = "";
-        if(modoAtual === 'geral') labelMes = "Geral (Ano)";
-        else if(modoAtual === 'jan') labelMes = "Janeiro";
-        else if(modoAtual === 'fev') labelMes = "Fevereiro";
-        else if(modoAtual === 'mar') labelMes = "Março";
-        else if(modoAtual === 'abr') labelMes = "Abril";
-        else if(modoAtual === 'mai') labelMes = "Maio";
-        document.getElementById('kpi-titulo-mes').innerText = `(${labelMes})`;
-
-        document.getElementById('kpi-total').innerText = totalFaturado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        document.getElementById('kpi-top-vendedor').innerText = lider ? lider.nome : "-";
-
-        const hoje = new Date();
-        document.getElementById('data-atualizacao').innerText = hoje.toLocaleDateString() + " " + hoje.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-        renderizarCorrida(dadosVendedores);
-        renderizarTabela(dadosVendedores);
-
-        const ctxPie = document.getElementById('pieChart').getContext('2d');
-        const backgroundColorsPizza = dadosVendedores.map(v => getTeamPattern(ctxPie, v.nome));
-        renderPieChart(
-            dadosVendedores.map(d => d.nome),
-            dadosVendedores.map(d => d.valor),
-            backgroundColorsPizza
-        );
-
-        gerarNarracao(lider, ultimo, meio);
+    if (autoScrollEnabled && !isPausedAtEdge) {
+        requestAnimationFrame(processarAutoScroll);
     }
+}
 
-    function toggleAutoScroll() {
-        autoScrollEnabled = !autoScrollEnabled;
-        atualizarBotaoScroll();
+function atualizarBotaoScroll() {
+    const btn = document.getElementById('btn-autoscroll');
+    if (!btn) return;
 
-        if (autoScrollEnabled && !isPausedAtEdge) {
-            requestAnimationFrame(processarAutoScroll);
+    if (autoScrollEnabled) {
+        btn.innerHTML = "🔄 Scroll: ON";
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-success');
+    } else {
+        btn.innerHTML = "🛑 Scroll: OFF";
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-danger');
+    }
+}
+
+function processarAutoScroll() {
+    if (!autoScrollEnabled) return;
+    if (isPausedAtEdge) return;
+
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    const currentScroll = window.scrollY;
+    const scrollSpeed = 1;
+
+    if (scrollDirection === 1 && currentScroll >= maxScroll - 2) {
+        isPausedAtEdge = true;
+        setTimeout(() => {
+            scrollDirection = -1;
+            isPausedAtEdge = false;
+            if (autoScrollEnabled) requestAnimationFrame(processarAutoScroll);
+        }, 5000);
+    } else if (scrollDirection === -1 && currentScroll <= 2) {
+        isPausedAtEdge = true;
+        setTimeout(() => {
+            scrollDirection = 1;
+            isPausedAtEdge = false;
+            if (autoScrollEnabled) requestAnimationFrame(processarAutoScroll);
+        }, 5000);
+    } else {
+        window.scrollBy(0, scrollDirection * scrollSpeed);
+        requestAnimationFrame(processarAutoScroll);
+    }
+}
+
+async function initDashboard() {
+    document.getElementById('select-mes').value = modoAtual;
+    
+    // [COPA DO MUNDO] Ativação da classe de tema e título
+    if (isWorldCupMode) {
+        document.body.classList.add('copa-mundo-theme');
+        const tituloMain = document.getElementById('navbar-title-main');
+        if (tituloMain) {
+            tituloMain.innerText = "🏁 GP do Atacado - Edição Copa do Mundo Brunx 🏁";
         }
     }
 
-    function atualizarBotaoScroll() {
-        const btn = document.getElementById('btn-autoscroll');
-        if (!btn) return;
+    await preloadShieldImages(); // Preload images first
+    await updateDashboard();
+    dispararConfetes();
+    atualizarBotaoScroll();
+    setInterval(updateDashboard, 30000);
+}
 
-        if (autoScrollEnabled) {
-            btn.innerHTML = "🔄 Scroll: ON";
-            btn.classList.remove('btn-danger');
-            btn.classList.add('btn-success');
-        } else {
-            btn.innerHTML = "🛑 Scroll: OFF";
-            btn.classList.remove('btn-success');
-            btn.classList.add('btn-danger');
-        }
-    }
+function abrirPerfil(nome, valor, index) {
+    const posicao = index + 1;
+    const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    function processarAutoScroll() {
-        if (!autoScrollEnabled) return;
-        if (isPausedAtEdge) return;
-
-        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-        const currentScroll = window.scrollY;
-        const scrollSpeed = 1;
-
-        if (scrollDirection === 1 && currentScroll >= maxScroll - 2) {
-            isPausedAtEdge = true;
-            setTimeout(() => {
-                scrollDirection = -1;
-                isPausedAtEdge = false;
-                if (autoScrollEnabled) requestAnimationFrame(processarAutoScroll);
-            }, 5000);
-        } else if (scrollDirection === -1 && currentScroll <= 2) {
-            isPausedAtEdge = true;
-            setTimeout(() => {
-                scrollDirection = 1;
-                isPausedAtEdge = false;
-                if (autoScrollEnabled) requestAnimationFrame(processarAutoScroll);
-            }, 5000);
-        } else {
-            window.scrollBy(0, scrollDirection * scrollSpeed);
-            requestAnimationFrame(processarAutoScroll);
-        }
-    }
-
-    async function initDashboard() {
-        document.getElementById('select-mes').value = modoAtual;
-        await preloadShieldImages(); // Preload images first
-        await updateDashboard();
-        dispararConfetes();
-        atualizarBotaoScroll();
-        setInterval(updateDashboard, 30000);
-    }
-
-    function abrirPerfil(nome, valor, index) {
-        const posicao = index + 1;
-        const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-        let time = "Time Desconhecido";
-        let nomeArquivoEscudo = "";
+    let time = "Time Desconhecido";
+    let nomeArquivoEscudo = "";
+    
+    // [COPA DO MUNDO] Ajustar o time se for modo Copa
+    if (isWorldCupMode) {
+        time = "Seleção Brasileira";
+        nomeArquivoEscudo = "Brasil HD.png"; // Escudo do Brasil
+    } else {
         if (n.includes('everton')) { time = "Corinthians (Timão)"; nomeArquivoEscudo = "Corinthians HD.png"; }
         else if (n.includes('maevelim')) { time = "Botafogo (Fogão)"; nomeArquivoEscudo = "Botafogo HD.png"; }
         else if (n.includes('emily')) { time = "Grêmio (Imortal)"; nomeArquivoEscudo = "Grêmio HD.png"; }
@@ -511,239 +568,252 @@
         else if (n.includes('maria')) { time = "Santos (Peixe)"; nomeArquivoEscudo = "Santos HD.png"; }
         else if (n.includes('leandra') || n.includes('lelandra')) { time = "Bahia (Tricolor de Aço)"; nomeArquivoEscudo = "Bahia HD.png"; }
         else if (n.includes('vitoria')) { time = "Mirassol (Leão)"; nomeArquivoEscudo = "Mirassol-SP HD.png"; }
+    }
 
-        let frasesSituacao = [];
-        let frasesMotivacionais = [];
+    let frasesSituacao = [];
+    let frasesMotivacionais = [];
 
-        if (posicao === 1) {
-            frasesSituacao = [
-                "👑 O REI DA PISTA! Olhando todo mundo pelo retrovisor!",
-                "🏆 Na pole position! O cheiro da vitória está no ar.",
-                "🥇 Isolado na ponta! Ninguém consegue pegar."
-            ];
-            frasesMotivacionais = [
-                "O difícil não é chegar no topo, é se manter lá. Continue acelerando!",
-                "Você é o alvo agora. Não olhe para trás, olhe para a linha de chegada!",
-                "Liderança é atitude. Continue inspirando o time!",
-                "O topo é seu lugar. Faça valer a pena!",
-                "Quem está em primeiro não para. Acelera!",
-                "A vista daqui de cima é ótima, não é? Mantenha o foco!"
-            ];
-        } else if (posicao <= 4) {
-            frasesSituacao = [
-                "🔥 No G4! A liderança é logo ali, acelera!",
-                " podium à vista! Continue pressionando!",
-                "🚀 Em velocidade de cruzeiro rumo ao topo!"
-            ];
-            frasesMotivacionais = [
-                "Você está na elite! Falta pouco para o topo.",
-                "A consistência é a chave. Mantenha o ritmo e ataque na hora certa.",
-                "Os campeões são feitos de garra. Você está no caminho certo!",
-                "O pódio está te esperando. Não desista agora!",
-                "Cada venda te deixa mais perto da glória.",
-                "Sinta a pressão, use-a como combustível."
-            ];
-        } else if (posicao > totalParticipantes - 4) {
-            frasesSituacao = [
-                "⚠️ Alerta Z4! Hora de ligar o turbo e sair dessa!",
-                "🚦 Na zona de rebaixamento! É tudo ou nada agora!",
-                "Cuidado com a lanterna! Acelere para fugir!"
-            ];
-            frasesMotivacionais = [
-                "Não importa como você começa, mas sim como termina.",
-                "O fracasso é apenas uma oportunidade para recomeçar com mais inteligência.",
-                "A corrida só acaba na bandeirada. Ainda dá tempo de virar o jogo!",
-                "Use a lanterna para iluminar seu caminho de volta ao topo.",
-                "A maior glória não é nunca cair, mas sim levantar-se a cada queda.",
-                "Transforme cada 'não' em um degrau para o 'sim'."
-            ];
+    if (posicao === 1) {
+        frasesSituacao = [
+            "👑 O REI DA PISTA! Olhando todo mundo pelo retrovisor!",
+            "🏆 Na pole position! O cheiro da vitória está no ar.",
+            "🥇 Isolado na ponta! Ninguém consegue pegar."
+        ];
+        frasesMotivacionais = [
+            "O difícil não é chegar no topo, é se manter lá. Continue acelerando!",
+            "Você é o alvo agora. Não olhe para trás, olhe para a linha de chegada!",
+            "Liderança é atitude. Continue inspirando o time!",
+            "O topo é seu lugar. Faça valer a pena!",
+            "Quem está em primeiro não para. Acelera!",
+            "A vista daqui de cima é ótima, não é? Mantenha o foco!"
+        ];
+    } else if (posicao <= 4) {
+        frasesSituacao = [
+            "🔥 No G4! A liderança é logo ali, acelera!",
+            " podium à vista! Continue pressionando!",
+            "🚀 Em velocidade de cruzeiro rumo ao topo!"
+        ];
+        frasesMotivacionais = [
+            "Você está na elite! Falta pouco para o topo.",
+            "A consistência é a chave. Mantenha o ritmo e ataque na hora certa.",
+            "Os campeões são feitos de garra. Você está no caminho certo!",
+            "O pódio está te esperando. Não desista agora!",
+            "Cada venda te deixa mais perto da glória.",
+            "Sinta a pressão, use-a como combustível."
+        ];
+    } else if (posicao > totalParticipantes - 4) {
+        frasesSituacao = [
+            "⚠️ Alerta Z4! Hora de ligar o turbo e sair dessa!",
+            "🚦 Na zona de rebaixamento! É tudo ou nada agora!",
+            "Cuidado com a lanterna! Acelere para fugir!"
+        ];
+        frasesMotivacionais = [
+            "Não importa como você começa, mas sim como termina.",
+            "O fracasso é apenas uma oportunidade para recomeçar com mais inteligência.",
+            "A corrida só acaba na bandeirada. Ainda dá tempo de virar o jogo!",
+            "Use a lanterna para iluminar seu caminho de volta ao topo.",
+            "A maior glória não é nunca cair, mas sim levantar-se a cada queda.",
+            "Transforme cada 'não' em um degrau para o 'sim'."
+        ];
+    } else {
+        frasesSituacao = [
+            "🚗 No meio do pelotão! É hora de ousar e buscar posições!",
+            "Buscando espaço na pista! Cada centímetro conta.",
+            "Na briga do meio da tabela! Acelere para se destacar."
+        ];
+        frasesMotivacionais = [
+            "Saia da média! Você tem potencial para muito mais.",
+            "O meio da tabela é confortável, mas o topo é onde a mágica acontece.",
+            "Um passo de cada vez. A subida é constante.",
+            "A ultrapassagem de hoje é a liderança de amanhã.",
+            "Conforto é inimigo do progresso. Acelere!",
+            "Pense fora da caixa, venda fora da curva."
+        ];
+    }
+
+    const fraseSituacaoSorteada = frasesSituacao[Math.floor(Math.random() * frasesSituacao.length)];
+    const fraseMotivacaoSorteada = frasesMotivacionais[Math.floor(Math.random() * frasesMotivacionais.length)];
+
+    document.getElementById('perfil-nome').innerText = nome;
+    document.getElementById('perfil-time').innerText = time;
+    document.getElementById('perfil-posicao-badge').innerText = posicao + "º";
+    document.getElementById('perfil-frase-situacao').innerText = fraseSituacaoSorteada;
+    document.getElementById('perfil-frase-motivacao').innerText = fraseMotivacaoSorteada;
+
+    const imgUrl = getAvatarUrl(nome);
+    const imgEl = document.getElementById('perfil-img');
+    imgEl.src = imgUrl;
+    imgEl.onerror = function() { this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'; };
+
+    const escudoImgEl = document.getElementById('perfil-escudo-img');
+    if (time !== "Time Desconhecido") {
+        const escudoUrl = `assets/Images/EscudosTimes/${nomeArquivoEscudo}`;
+        escudoImgEl.src = escudoUrl;
+        escudoImgEl.onerror = function() { 
+            this.style.display = 'none'; // Hide if shield not found
+        };
+        escudoImgEl.style.display = 'block'; // Show if found
+    } else {
+        escudoImgEl.style.display = 'none'; // Hide for unknown team
+    }
+
+    var bsOffcanvas = new bootstrap.Offcanvas(document.getElementById('painelPerfil'));
+    bsOffcanvas.show();
+}
+
+function getTeamPattern(ctx, nome) {
+    const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    let colors = [];
+    let horizontal = false;
+
+    if (n.includes('everton')) colors = ['#000000', '#FFFFFF'];
+    else if (n.includes('maevelim')) { colors = ['#000000', '#FFFFFF']; horizontal = true; }
+    else if (n.includes('emily')) { colors = ['#0D2E6E', '#000000', '#FFFFFF']; }
+    else if (n.includes('dariele')) colors = ['#831D1C', '#00913C', '#FFFFFF'];
+    else if (n.includes('daniele')) { colors = ['#0033A0', '#FFFFFF']; }
+    else if (n.includes('bruno')) { colors = ['#C3281E', '#000000']; horizontal = true; }
+    else if (n.includes('marlon')) { colors = ['#FE0000', '#FFFFFF', '#000000']; horizontal = true; }
+    else if (n.includes('maria')) {
+        colors = ['#FFFFFF', '#000000'];
+        horizontal = false;
+    }
+    else if (n.includes('leandra') || n.includes('lelandra')) {
+        colors = ['#0033A0', '#FFFFFF', '#E03A3E'];
+        horizontal = true;
+    }
+    else if (n.includes('vitoria')) {
+        colors = ['#FFD700', '#008000'];
+        horizontal = false;
+    }
+    else {
+         const defaultColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+         return defaultColors[Math.floor(Math.random() * defaultColors.length)];
+    }
+
+    const patternCanvas = document.createElement('canvas');
+    const size = 20; // Tamanho pequeno para o padrão da legenda
+    patternCanvas.width = size;
+    patternCanvas.height = size;
+    const pCtx = patternCanvas.getContext('2d');
+    const step = size / colors.length;
+
+    // Desenha apenas as listras
+    colors.forEach((color, i) => {
+        pCtx.fillStyle = color;
+        if (horizontal) {
+            pCtx.fillRect(0, i * step, size, step);
         } else {
-            frasesSituacao = [
-                "🚗 No meio do pelotão! É hora de ousar e buscar posições!",
-                "Buscando espaço na pista! Cada centímetro conta.",
-                "Na briga do meio da tabela! Acelere para se destacar."
-            ];
-            frasesMotivacionais = [
-                "Saia da média! Você tem potencial para muito mais.",
-                "O meio da tabela é confortável, mas o topo é onde a mágica acontece.",
-                "Um passo de cada vez. A subida é constante.",
-                "A ultrapassagem de hoje é a liderança de amanhã.",
-                "Conforto é inimigo do progresso. Acelere!",
-                "Pense fora da caixa, venda fora da curva."
-            ];
+            pCtx.fillRect(i * step, 0, step, size);
         }
+    });
 
-        const fraseSituacaoSorteada = frasesSituacao[Math.floor(Math.random() * frasesSituacao.length)];
-        const fraseMotivacaoSorteada = frasesMotivacionais[Math.floor(Math.random() * frasesMotivacionais.length)];
+    return ctx.createPattern(patternCanvas, 'repeat');
+}
 
-        document.getElementById('perfil-nome').innerText = nome;
-        document.getElementById('perfil-time').innerText = time;
-        document.getElementById('perfil-posicao-badge').innerText = posicao + "º";
-        document.getElementById('perfil-frase-situacao').innerText = fraseSituacaoSorteada;
-        document.getElementById('perfil-frase-motivacao').innerText = fraseMotivacaoSorteada;
+function dispararConfetes() {
+    var duration = 3 * 1000;
+    var animationEnd = Date.now() + duration;
+    var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+    function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+    var interval = setInterval(function() {
+      var timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) return clearInterval(interval);
+      var particleCount = 50 * (timeLeft / duration);
+      confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+      confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
+}
 
-        const nomeArquivo = getNomeArquivo(nome);
-        const imgUrl = `assets/Images/Imagens_Cavalinhos/${nomeArquivo}`;
+function renderizarCorrida(vendedores) {
+    const container = document.getElementById('pista-corrida');
+    // We clear the track but need to keep the background video if it exists
+    const videoHtml = isWorldCupMode ? '<video id="video-fundo-pista" src="assets/Videos/Videocopadomundo.mp4" autoplay loop muted playsinline></video>' : '';
+    container.innerHTML = videoHtml + '<div class="linha-chegada"></div>';
+    const maiorValor = vendedores.length > 0 ? vendedores[0].valor : 1;
 
-        const imgEl = document.getElementById('perfil-img');
-        imgEl.src = imgUrl;
-        imgEl.onerror = function() { this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'; };
+    vendedores.forEach((vendedor, index) => {
+        let porcentagem = (vendedor.valor / maiorValor) * 100;
+        if(porcentagem > 95) porcentagem = 95;
 
-        const escudoImgEl = document.getElementById('perfil-escudo-img');
-        if (time !== "Time Desconhecido") {
-            const escudoUrl = `assets/Images/EscudosTimes/${nomeArquivoEscudo}`;
-            escudoImgEl.src = escudoUrl;
-            escudoImgEl.onerror = function() { 
-                this.style.display = 'none'; // Hide if shield not found
-            };
-            escudoImgEl.style.display = 'block'; // Show if found
-        } else {
-            escudoImgEl.style.display = 'none'; // Hide for unknown team
-        }
-
-        var bsOffcanvas = new bootstrap.Offcanvas(document.getElementById('painelPerfil'));
-        bsOffcanvas.show();
-    }
-
-    function getTeamPattern(ctx, nome) {
-        const n = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        let colors = [];
-        let horizontal = false;
-
-        if (n.includes('everton')) colors = ['#000000', '#FFFFFF'];
-        else if (n.includes('maevelim')) { colors = ['#000000', '#FFFFFF']; horizontal = true; }
-        else if (n.includes('emily')) { colors = ['#0D2E6E', '#000000', '#FFFFFF']; }
-        else if (n.includes('dariele')) colors = ['#831D1C', '#00913C', '#FFFFFF'];
-        else if (n.includes('daniele')) { colors = ['#0033A0', '#FFFFFF']; }
-        else if (n.includes('bruno')) { colors = ['#C3281E', '#000000']; horizontal = true; }
-        else if (n.includes('marlon')) { colors = ['#FE0000', '#FFFFFF', '#000000']; horizontal = true; }
-        else if (n.includes('maria')) {
-            colors = ['#FFFFFF', '#000000'];
-            horizontal = false;
-        }
-        else if (n.includes('leandra') || n.includes('lelandra')) {
-            colors = ['#0033A0', '#FFFFFF', '#E03A3E'];
-            horizontal = true;
-        }
-        else if (n.includes('vitoria')) {
-            colors = ['#FFD700', '#008000'];
-            horizontal = false;
-        }
-        else {
-             const defaultColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
-             return defaultColors[Math.floor(Math.random() * defaultColors.length)];
-        }
-
-        const patternCanvas = document.createElement('canvas');
-        const size = 20; // Tamanho pequeno para o padrão da legenda
-        patternCanvas.width = size;
-        patternCanvas.height = size;
-        const pCtx = patternCanvas.getContext('2d');
-        const step = size / colors.length;
-
-        // Desenha apenas as listras
-        colors.forEach((color, i) => {
-            pCtx.fillStyle = color;
-            if (horizontal) {
-                pCtx.fillRect(0, i * step, size, step);
-            } else {
-                pCtx.fillRect(i * step, 0, step, size);
-            }
-        });
-
-        // O desenho do escudo foi removido daqui e movido para o plugin 'shieldOnPieSlicesPlugin'
-
-        return ctx.createPattern(patternCanvas, 'repeat');
-    }
-
-    function dispararConfetes() {
-        var duration = 3 * 1000;
-        var animationEnd = Date.now() + duration;
-        var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-        function randomInRange(min, max) { return Math.random() * (max - min) + min; }
-        var interval = setInterval(function() {
-          var timeLeft = animationEnd - Date.now();
-          if (timeLeft <= 0) return clearInterval(interval);
-          var particleCount = 50 * (timeLeft / duration);
-          confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-          confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-        }, 250);
-    }
-
-    function renderizarCorrida(vendedores) {
-        const container = document.getElementById('pista-corrida');
-        container.innerHTML = '<div class="linha-chegada"></div>';
-        const maiorValor = vendedores.length > 0 ? vendedores[0].valor : 1;
-
-        vendedores.forEach((vendedor, index) => {
-            let porcentagem = (vendedor.valor / maiorValor) * 100;
-            if(porcentagem > 95) porcentagem = 95;
-
-            const nomeArquivo = getNomeArquivo(vendedor.nome);
-
-            const raiaHtml = `
-                <div class="raia">
-                    <div class="nome-vendedor" title="${vendedor.nome}">${vendedor.nome}</div>
-                    <div class="trilho">
-                        <div class="cavalinho-wrapper" id="cavalinho-${index}" style="left: 0%; cursor: pointer;"
-                             onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
-                            <div class="valor-atual">${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumSignificantDigits: 3 })}</div>
-                            <img src="assets/Images/Imagens_Cavalinhos/${nomeArquivo}" class="avatar-img" alt="${vendedor.nome}"
-                                 onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
-                        </div>
+        const raiaHtml = `
+            <div class="raia">
+                <div class="nome-vendedor" title="${vendedor.nome}">${vendedor.nome}</div>
+                <div class="trilho">
+                    <div class="cavalinho-wrapper" id="cavalinho-${index}" style="left: 0%; cursor: pointer;"
+                         onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
+                        <div class="valor-atual">${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumSignificantDigits: 3 })}</div>
+                        <img src="${getAvatarUrl(vendedor.nome)}" class="avatar-img" alt="${vendedor.nome}"
+                             onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
                     </div>
                 </div>
-            `;
-            container.insertAdjacentHTML('beforeend', raiaHtml);
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', raiaHtml);
 
-            setTimeout(() => {
-                const el = document.getElementById(`cavalinho-${index}`);
-                if(el) el.style.left = `${porcentagem}%`;
-            }, 100 + (index * 50));
-        });
+        setTimeout(() => {
+            const el = document.getElementById(`cavalinho-${index}`);
+            if(el) el.style.left = `${porcentagem}%`;
+        }, 100 + (index * 50));
+    });
+}
+
+function renderizarTabela(vendedores) {
+    const tbody = document.querySelector('#tabela-classificacao tbody');
+    tbody.innerHTML = '';
+
+    vendedores.forEach((vendedor, index) => {
+        const posicao = index + 1;
+
+        let badgeColor = '#6c757d';
+        if (posicao <= 4) badgeColor = '#28a745';
+        else if (posicao > vendedores.length - 4) badgeColor = '#dc3545';
+
+        const row = `
+            <tr style="cursor: pointer;" onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
+                <td class="text-center">
+                    <span class="posicao-badge" style="background-color: ${badgeColor}">${posicao}º</span>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <img src="${getAvatarUrl(vendedor.nome)}"
+                             class="rounded-circle border border-2 border-dark me-3"
+                             style="width: 45px; height: 45px; object-fit: cover; background: #fff;"
+                             onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
+                        <span class="fw-bold fs-5" style="font-family: 'Bangers'; letter-spacing: 1px;">${vendedor.nome}</span>
+                    </div>
+                </td>
+                <td class="text-end fw-bold fs-5" style="font-family: 'Fredoka'; color: #333;">
+                    ${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </td>
+            </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', row);
+    });
+}
+
+function gerarNarracao(lider, ultimo, meio) {
+    if (!lider && !ultimo && !meio) {
+         return;
     }
 
-    function renderizarTabela(vendedores) {
-        const tbody = document.querySelector('#tabela-classificacao tbody');
-        tbody.innerHTML = '';
+    let frases = [];
 
-        vendedores.forEach((vendedor, index) => {
-            const posicao = index + 1;
-            const nomeArquivo = getNomeArquivo(vendedor.nome);
-
-            let badgeColor = '#6c757d';
-            if (posicao <= 4) badgeColor = '#28a745';
-            else if (posicao > vendedores.length - 4) badgeColor = '#dc3545';
-
-            const row = `
-                <tr style="cursor: pointer;" onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
-                    <td class="text-center">
-                        <span class="posicao-badge" style="background-color: ${badgeColor}">${posicao}º</span>
-                    </td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <img src="assets/Images/Imagens_Cavalinhos/${nomeArquivo}"
-                                 class="rounded-circle border border-2 border-dark me-3"
-                                 style="width: 45px; height: 45px; object-fit: cover; background: #fff;"
-                                 onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
-                            <span class="fw-bold fs-5" style="font-family: 'Bangers'; letter-spacing: 1px;">${vendedor.nome}</span>
-                        </div>
-                    </td>
-                    <td class="text-end fw-bold fs-5" style="font-family: 'Fredoka'; color: #333;">
-                        ${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </td>
-                </tr>
-            `;
-            tbody.insertAdjacentHTML('beforeend', row);
-        });
-    }
-
-    function gerarNarracao(lider, ultimo, meio) {
-        if (!lider && !ultimo && !meio) {
-             return;
+    // [COPA DO MUNDO] Frases temáticas para a narração
+    if (isWorldCupMode) {
+        frases = [
+            `É GOOOL! RUMO AO HEXA! ${lider.nome} disparou na liderança e não quer saber de conversa!`,
+            `Haja coração, amigo! ${lider.nome} está voando baixo na pista, parece a Seleção de 2002!`,
+            `Olha o que ele fez! Olha o que ele fez! ${lider.nome} assumindo a ponta com autoridade!`,
+            `Sai que é sua, Taffarel! ${lider.nome} defendeu a liderança com unhas e dentes!`,
+        ];
+        if (meio) {
+            frases.push(
+                `No meio de campo, ${meio.nome} segue distribuindo o jogo tentando buscar os líderes!`,
+                `Olha o ${meio.nome} ali na "meiuca", só esperando o cruzamento pra fazer o gol!`
+            );
         }
-
-        let frases = [
+    } else {
+        frases = [
             `OLHA O QUE ELE FEZ! ${lider.nome} disparou na liderança e não quer saber de conversa!`,
             `Haja coração, amigo! ${lider.nome} está voando baixo na pista!`,
             `É tetra? Não, é ${lider.nome} assumindo a ponta com autoridade!`,
@@ -754,60 +824,62 @@
                 `Olha o ${meio.nome} ali na "meiuca", estudando a melhor hora de atacar!`,
             );
         }
-        const fraseSorteada = frases[Math.floor(Math.random() * frases.length)];
-        document.getElementById('narracao-texto').innerText = fraseSorteada;
     }
 
-    function renderPieChart(labels, data, backgroundColors) {
-        const ctx = document.getElementById('pieChart').getContext('2d');
+    const fraseSorteada = frases[Math.floor(Math.random() * frases.length)];
+    document.getElementById('narracao-texto').innerText = fraseSorteada;
+}
 
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
+function renderPieChart(labels, data, backgroundColors) {
+    const ctx = document.getElementById('pieChart').getContext('2d');
 
-        chartInstance = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: backgroundColors,
-                    hoverOffset: 4,
-                    borderColor: '#000',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { boxWidth: 15, font: { size: 14, family: 'Fredoka' }, color: '#333' }
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                hoverOffset: 4,
+                borderColor: '#000',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 15, font: { size: 14, family: 'Fredoka' }, color: '#333' }
+                },
+                datalabels: {
+                    color: '#fff',
+                    textStrokeColor: '#000',
+                    textStrokeWidth: 4,
+                    font: { weight: 'bold', size: 16, family: 'Fredoka' },
+                    formatter: (value, ctx) => {
+                        let sum = 0;
+                        let dataArr = ctx.chart.data.datasets[0].data;
+                        dataArr.map(data => { sum += data; });
+                        let percentage = (value * 100 / sum).toFixed(1) + "%";
+                        return percentage;
                     },
-                    datalabels: {
-                        color: '#fff',
-                        textStrokeColor: '#000',
-                        textStrokeWidth: 4,
-                        font: { weight: 'bold', size: 16, family: 'Fredoka' },
-                        formatter: (value, ctx) => {
-                            let sum = 0;
-                            let dataArr = ctx.chart.data.datasets[0].data;
-                            dataArr.map(data => { sum += data; });
-                            let percentage = (value * 100 / sum).toFixed(1) + "%";
-                            return percentage;
-                        },
-                        display: function(context) {
-                            var dataset = context.dataset;
-                            var value = dataset.data[context.dataIndex];
-                            var total = dataset.data.reduce((a, b) => a + b, 0);
-                            var percentage = (value / total) * 100;
-                            return percentage > 5;
-                        }
+                    display: function(context) {
+                        var dataset = context.dataset;
+                        var value = dataset.data[context.dataIndex];
+                        var total = dataset.data.reduce((a, b) => a + b, 0);
+                        var percentage = (value / total) * 100;
+                        return percentage > 5;
                     }
                 }
             }
-        });
-    }
+        }
+    });
+}
 
-    window.onload = initDashboard;
+window.onload = initDashboard;
