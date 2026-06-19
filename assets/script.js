@@ -238,7 +238,7 @@ async function baixarCSV(url, mes) {
                 }
 
                 // [COPA DO MUNDO] Filtro dinâmico para Junho e Julho
-                if ((mes === 'jun' || mes === 'jul') && ['MARLON', 'DARIELE', 'MARIA'].includes(nome)) {
+                if ((mes === 'jun' || mes === 'jul') && ['MARLON', 'MARIA'].includes(nome)) {
                     return; 
                 }
 
@@ -316,6 +316,7 @@ function getAvatarUrl(nome) {
         let nomeBrasil = "";
         if (n.includes('BRUNO')) nomeBrasil = 'Bruno';
         else if (n.includes('EMILY')) nomeBrasil = 'Emili';
+        else if (n.includes('DARIELE')) nomeBrasil = 'Dariele';
         else if (n.includes('DANIELE')) nomeBrasil = 'Daniele';
         else if (n.includes('EVERTON')) nomeBrasil = 'Everton';
         else if (n.includes('LEANDRA') || n.includes('LELANDRA')) nomeBrasil = 'Leandra';
