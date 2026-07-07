@@ -1,59 +1,241 @@
 # 🏁 GP do Atacado - Cavalinhos Time Brunx
 
-Bem-vindo ao **GP do Atacado**, um dashboard interativo e divertido inspirado na corrida dos cavalinhos do Fantástico, desenvolvido para acompanhar o desempenho de vendas da equipe Brunx de forma lúdica e engajadora.
+<div align="center">
+
+![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.0-orange?style=flat-square)
+
+**🐴 Um dashboard interativo e gamificado que transforma dados de vendas em uma emocionante corrida de cavalinhos!**
+
+[Sobre](#-sobre-o-projeto) • [Funcionalidades](#-funcionalidades-principais) • [Tecnologias](#-tecnologias-utilizadas) • [Como Usar](#-como-usar) • [Estrutura](#-estrutura-de-arquivos) • [Desenvolvedor](#-desenvolvedor)
+
+</div>
+
+---
 
 ## 📋 Sobre o Projeto
 
-Este projeto é uma aplicação web que transforma dados de vendas em uma emocionante corrida de cavalinhos. Ele consome dados de uma planilha do Google Sheets e apresenta as informações em tempo real, com animações, gráficos interativos e um histórico de ultrapassagens para aumentar a competitividade.
+**GP do Atacado** é uma aplicação web inovadora que gamifica o acompanhamento de desempenho de vendas da equipe Brunx. Inspirada na clássica corrida dos cavalinhos do Fantástico, transforma números de faturamento em uma visualização lúdica e engajadora.
 
-## 🚀 Funcionalidades Implementadas
+O projeto integra-se com **Google Sheets** para consumo de dados em tempo real, oferecendo visualizações dinâmicas, histórico de ultrapassagens e um painel interativo que celebra conquistas e motiva a equipe de forma divertida.
 
-### 🎨 Interface e Design
-- **Tema Divertido:** Design inspirado em desenhos animados e programas de TV, utilizando fontes como 'Bangers' e 'Fredoka'.
-- **Animações:** Uso de `Animate.css` para entradas de elementos e animações personalizadas (galope dos cavalinhos, confetes).
-- **Responsividade:** Layout adaptável utilizando **Bootstrap 5**, garantindo boa visualização em diferentes dispositivos.
-- **Menu de Meses (Dropdown):** Um menu de seleção (dropdown) permite filtrar os resultados por mês ou visualizar o resultado geral do ano, otimizando o espaço na tela.
-- **Painel Lateral (Offcanvas):** Perfil detalhado de cada vendedor ao clicar no cavalinho ou na tabela, mostrando posição, time e frases motivacionais.
+---
 
-### 🏇 A Corrida (Dashboard Principal)
-- **Pista de Corrida:** Visualização gráfica onde a posição dos cavalinhos é proporcional ao faturamento do vendedor em relação ao líder.
-- **Avatares Personalizados:** Cada vendedor possui um avatar de cavalinho personalizado (imagens PNG) baseado no seu nome.
-- **KPIs em Destaque:** Exibição clara do Faturamento Total, Líder da Prova e Data de Atualização.
-- **Narração Automática:** Frases divertidas geradas aleatoriamente narrando a situação do líder, do último colocado e do pelotão intermediário.
-- **Histórico de Ultrapassagens:** Uma tabela exibe as últimas 5 ultrapassagens, mostrando a data e o evento, para acirrar a competição.
+## 🚀 Funcionalidades Principais
 
-### 📊 Dados e Gráficos
-- **Integração com Google Sheets:** Os dados são puxados diretamente de uma planilha publicada na web como CSV, permitindo atualização fácil e confiável por parte dos gestores.
-- **Tratamento de Dados:** Script robusto para limpar e formatar valores monetários e nomes, garantindo a integridade dos dados exibidos.
-- **Gráfico de Pizza (Doughnut):** Visualização da fatia de mercado de cada vendedor utilizando `Chart.js`, com padrões de cores personalizados para times específicos (ex: Corinthians, Palmeiras, Flamengo).
-- **Tabela de Classificação:** Lista ordenada dos vendedores com suas respectivas posições e faturamentos.
+### 🎨 **Interface & Design**
+- ✨ **Tema Visualmente Atraente** - Design inspired by cartoon/TV aesthetics com tipografia divertida (Bangers, Fredoka)
+- 🎬 **Animações Fluidas** - Animate.css integrado com efeitos customizados (galope, confetes, pulsação)
+- 📱 **100% Responsivo** - Layout adaptável para desktop, tablet e mobile utilizando Bootstrap 5
+- 🌙 **Tema Copa do Mundo** - Tema especial para junho/julho com decoração dinâmica (bandeirinhas Brasil)
+- 🎭 **Painel Lateral Interativo** - Offcanvas com perfil detalhado do vendedor (posição, time, frases motivacionais)
 
-### 🔊 Áudio e Efeitos
-- **Confetes:** Efeito de chuva de confetes ao carregar o dashboard para celebrar os resultados.
+### 🏇 **Dashboard Principal - A Corrida**
+- 🏁 **Pista de Corrida Visual** - Representação gráfica proporcional ao desempenho (quanto maior o faturamento, mais avançado o cavalinho)
+- 🎠 **Avatares Personalizados** - Imagens únicas para cada vendedor com suporte a times brasileiros
+- 📊 **KPIs em Destaque** - Cards informativos mostrando:
+  - 💰 Faturamento Total
+  - 🏆 Líder da Prova
+  - 📅 Data de Atualização
+- 🎙️ **Narração Automática Divertida** - Comentários aleatórios narrando a situação do líder, último colocado e pelotão
+- 🔄 **Auto Scroll Dinâmico** - Botão para habilitar rolagem automática pela página com pausa nas extremidades
+
+### 📈 **Análise de Dados & Gráficos**
+- 📑 **Integração Google Sheets** - Consumo direto de planilhas publicadas como CSV (múltiplos meses)
+- 🧹 **Tratamento Robusto de Dados** - Parsing inteligente de valores monetários com suporte a diferentes formatos
+- 🍕 **Gráfico Doughnut Interativo** - Visualização de fatias de mercado com Chart.js + DataLabels
+- 🛡️ **Escudos de Times** - Ícones dos times brasileiros sobreposto ao gráfico de pizza
+- 📋 **Tabela de Classificação** - Ranking atualizado com posição, nome e faturamento
+
+### 🎯 **Histórico & Rastreamento**
+- 🔥 **Histórico de Ultrapassagens** - Registro automático das últimas 5 ultrapassagens com data e evento
+- 📊 **Detecção de Mudanças de Posição** - Sistema que captura quando um vendedor sobe de posição
+- 📅 **Modo Geral (Anual)** - Agregação de vendas de todos os meses para visão consolidada
+- 🗓️ **Filtro por Mês** - Seleção granular: Janeiro, Fevereiro, Março, Abril, Maio, Junho, Julho...
+
+### 🎊 **Efeitos & Celebração**
+- 🎉 **Chuva de Confetes** - Efeito celebrativo ao carregar o dashboard
+- 🎬 **Background Dinâmico** - Vídeo/imagem de fundo para modo Copa do Mundo
+- ⭐ **Badges de Posição** - Indicadores visuais de ranking (1º, 2º, 3º...)
+- 💫 **Animações de Entrada** - Elementos animados ao carregar a página
+
+### 👥 **Suporte a Vendedores**
+Suporte completo para: **Bruno**, **Daniele**, **Dariele**, **Emily**, **Everton**, **Leandra**, **Maevelim**, **Marlon**, **Maria** e **Vitoria**
+
+---
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **HTML5 & CSS3:** Estrutura e estilização.
-- **JavaScript (ES6+):** Lógica da aplicação, manipulação do DOM e consumo de dados.
-- **Bootstrap 5:** Framework CSS para layout e componentes.
-- **Chart.js:** Biblioteca para geração de gráficos.
-- **Animate.css:** Biblioteca de animações CSS.
-- **Canvas Confetti:** Efeito de confetes.
-- **Google Fonts:** Tipografia personalizada.
+<div align="center">
+
+| Tecnologia | Descrição |
+|-----------|-----------|
+| ![HTML5](https://img.shields.io/badge/HTML5-E34C26?style=flat-square&logo=html5&logoColor=white) | Estrutura semântica |
+| ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) | Estilização avançada |
+| ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) | Lógica ES6+ |
+| ![Bootstrap](https://img.shields.io/badge/Bootstrap-563D7C?style=flat-square&logo=bootstrap&logoColor=white) | Framework CSS |
+| ![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=flat-square&logo=chart.js&logoColor=white) | Gráficos interativos |
+| ![Google Sheets](https://img.shields.io/badge/Google_Sheets-34A853?style=flat-square&logo=google-sheets&logoColor=white) | Fonte de dados |
+
+</div>
+
+**Bibliotecas Adicionais:**
+- 🎬 **Animate.css** - Animações CSS pré-construídas
+- 🎉 **Canvas Confetti** - Efeito de confetes
+- 📝 **Chart.js DataLabels** - Plugin para rótulos em gráficos
+- 🔤 **Google Fonts** - Tipografia personalizada (Bangers, Fredoka)
+
+---
 
 ## 📂 Estrutura de Arquivos
 
-- `index.html`: Arquivo principal contendo a estrutura da página.
-- `assets/script.js`: Arquivo contendo toda a lógica JavaScript da aplicação.
-- `assets/style.css`: Folha de estilos personalizada.
-- `assets/Images/`: Pasta contendo logos e os avatares dos cavalinhos.
-- `assets/Sons/`: Pasta contendo os efeitos sonoros.
-
-## ⚙️ Como Executar
-
-1. Clone este repositório.
-2. Certifique-se de que as pastas `assets/Images` e `assets/Sons` estejam populadas com os arquivos necessários.
-3. Abra o arquivo `index.html` em seu navegador preferido.
+```
+CavalinhosTimeBrunx/
+├── index.html                          # Arquivo principal HTML
+├── README.md                           # Este arquivo
+├── assets/
+│   ├── script.js                       # Lógica principal da aplicação
+│   ├── style.css                       # Estilos customizados
+│   ├── Imagens/
+│   │   ├── EscudosTimes/              # Escudos de 10+ times brasileiros
+│   │   ├── Imagens_Cavalinhos/        # Avatares dos vendedores
+│   │   └── LogoBrunx*.png             # Logos da empresa (normal e Copa)
+│   ├── Imagens_Brasil/                # Avatares do tema Copa do Mundo
+│   ├── Sons/                          # Efeitos sonoros (futuro)
+│   └── Videos/                        # Backgrounds de vídeo (futuro)
+```
 
 ---
-*Desenvolvido com ❤️ para o Time Brunx!*
+
+## ⚙️ Como Usar
+
+### 1️⃣ **Instalação Rápida**
+```bash
+# Clone o repositório
+git clone https://github.com/seu-usuario/CavalinhosTimeBrunx.git
+
+# Navegue até o diretório
+cd CavalinhosTimeBrunx
+
+# Abra em seu navegador
+# Windows
+start index.html
+
+# Mac
+open index.html
+
+# Linux
+xdg-open index.html
+```
+
+### 2️⃣ **Configuração de Dados**
+- Os dados são consumidos de uma **planilha Google Sheets** pública
+- Cada mês tem seu próprio `gid` (sheet ID) na URL
+- Para atualizar dados, basta editar a planilha - a aplicação puxa automaticamente
+
+### 3️⃣ **Usando o Dashboard**
+1. Selecione o mês desejado no dropdown
+2. Visualize a corrida em tempo real
+3. Clique em um vendedor para ver seu perfil completo
+4. Use o botão **Auto Scroll** para rolagem automática
+5. Acompanhe o **Histórico de Ultrapassagens** em tempo real
+
+---
+
+## 🎯 Recursos Avançados
+
+### Modo Copa do Mundo (Junho/Julho)
+- 🏴🏳️ Bandeirinhas Brasil decorando a página
+- 🏆 Logo especial da Brunx Copa
+- 🇧🇷 Imagens em tema Brasil dos vendedores
+- 🛡️ Escudos de times sobre gráficos
+
+### Sistema de Filtros
+- **Geral**: Agregação de todos os meses
+- **Por Mês**: Janeiro, Fevereiro, Março, Abril, Maio, Junho, Julho
+- **Remoção Dinâmica**: Alguns vendedores são filtrados em meses específicos (configurável)
+
+### Detecção de Ultrapassagens
+- Sistema inteligente que identifica mudanças de posição
+- Registro automático com timestamp
+- Histórico limitado às últimas 5 para limpeza visual
+
+---
+
+## 🔄 Fluxo de Dados
+
+```
+Google Sheets (CSV)
+       ↓
+    fetch() em JS
+       ↓
+parseCurrency() - Tratamento de valores
+       ↓
+Filtros por mês e vendedor
+       ↓
+Ordenação por faturamento (DESC)
+       ↓
+Renderização em:
+├── Pista de Corrida (visual)
+├── Gráfico Doughnut (pizza)
+└── Tabela de Classificação
+```
+
+---
+
+## 🎨 Personalização
+
+### Adicionar Novo Vendedor
+1. Adicione o nome na planilha Google Sheets
+2. Crie avatar em `assets/Imagens_Cavalinhos/`
+3. Crie avatar Brasil em `assets/Imagens_Brasil/` (sufixo `_Brasil.png`)
+4. Adicione mapeamento em `getAvatarUrl()` se necessário
+
+### Alterar Cores e Tema
+- Abra `assets/style.css`
+- Procure por variáveis CSS ou classes `.copa-mundo-theme`
+- Customize as cores, fontes e animações
+
+### Adicionar Novo Mês
+1. Crie nova aba na planilha Google Sheets
+2. Copie o `gid` da aba
+3. Adicione em `urlsPorMes` no `script.js`
+4. Adicione option no dropdown HTML
+
+---
+
+## 💡 Dicas de Desenvolvimento
+
+- **DevTools**: Use F12 para inspecionar elementos e debug de rede
+- **CSV**: Teste localmente salvando CSVs na pasta `assets/`
+- **Performance**: O script é otimizado para múltiplas requisições paralelas
+- **Responsividade**: Teste em diferentes resoluções com DevTools
+
+---
+
+## 📞 Suporte & Contribuição
+
+Encontrou um bug? Tem uma ideia de melhoria?
+
+- 🐛 Abra uma issue detalhando o problema
+- 💡 Sugira novas funcionalidades
+- 📝 Envie um pull request com melhorias
+
+---
+
+## 👨‍💻 Desenvolvedor
+
+**Marlon Albino**
+
+Desenvolvido com ❤️ para o **Time Brunx** em 2026
+
+---
+
+<div align="center">
+
+**Feito para gamificar vendas, aumentar engajamento e celebrar conquistas! 🎉**
+
+⭐ Se achou útil, deixe uma star! ⭐
+
+</div>

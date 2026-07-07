@@ -247,6 +247,37 @@ body.copa-mundo-theme {
     background-color: #007f2d; /* Tom de verde mais escuro para o gramado */
 }
 
+.pista-container {
+    isolation: isolate;
+}
+
+.copa-mundo-theme .pista-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        linear-gradient(110deg, rgba(255, 223, 0, 0.32), rgba(0, 156, 59, 0.42)),
+        linear-gradient(90deg, rgba(255,255,255,0.08) 0 50%, rgba(0,0,0,0.08) 50% 100%);
+    background-size: auto, 120px 100%;
+}
+
+#video-fundo-pista {
+    z-index: 0;
+    opacity: 1;
+    filter: saturate(1.1) contrast(1.05);
+    pointer-events: none;
+}
+
+.raia {
+    z-index: 3;
+}
+
+.linha-chegada {
+    z-index: 4;
+}
+
 .copa-mundo-theme .kpi-card-custom.border-success { border-color: #009c3b !important; }
 .copa-mundo-theme .kpi-card-custom.border-warning { border-color: #ffdf00 !important; }
 .copa-mundo-theme .kpi-card-custom.border-primary { border-color: #002776 !important; } /* Azul da bandeira */

@@ -93,10 +93,10 @@ const urlsPorMes = {
     'abr': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=938359542&single=true&output=csv',
     'mai': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=1462491173&single=true&output=csv',
     'jun': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=548050871&single=true&output=csv',
-    'jul': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=548050871&single=true&output=csv' // Assuming July uses the same sheet for now
+    'jul': 'assets/data/faturamento_julho_vendedores.csv'
 };
 
-let modoAtual = 'jun'; 
+let modoAtual = 'jul'; 
 let totalParticipantes = 0;
 let chartInstance = null;
 let rankingAnterior = [];
@@ -238,7 +238,7 @@ async function baixarCSV(url, mes) {
                 }
 
                 // [COPA DO MUNDO] Filtro dinâmico para Junho e Julho
-                if ((mes === 'jun' || mes === 'jul') && ['MARLON', 'DARIELE', 'MARIA'].includes(nome)) {
+                if ((mes === 'jun' || mes === 'jul') && ['MARLON', 'MARIA'].includes(nome)) {
                     return; 
                 }
 
@@ -316,6 +316,7 @@ function getAvatarUrl(nome) {
         let nomeBrasil = "";
         if (n.includes('BRUNO')) nomeBrasil = 'Bruno';
         else if (n.includes('EMILY')) nomeBrasil = 'Emili';
+        else if (n.includes('DARIELE')) nomeBrasil = 'Dariele';
         else if (n.includes('DANIELE')) nomeBrasil = 'Daniele';
         else if (n.includes('EVERTON')) nomeBrasil = 'Everton';
         else if (n.includes('LEANDRA') || n.includes('LELANDRA')) nomeBrasil = 'Leandra';
@@ -722,8 +723,33 @@ function dispararConfetes() {
 
 function renderizarCorrida(vendedores) {
     const container = document.getElementById('pista-corrida');
-    const videoHtml = isWorldCupMode ? '<video id="video-fundo-pista" src="assets/Videos/Videocopadomundo.mp4" autoplay loop muted playsinline></video>' : '';
-    container.innerHTML = videoHtml + '<div class="linha-chegada"></div>';
+    container.querySelectorAll('.raia, .linha-chegada').forEach(el => el.remove());
+
+    let videoFundo = container.querySelector('#video-fundo-pista');
+    if (isWorldCupMode) {
+        if (!videoFundo) {
+            videoFundo = document.createElement('video');
+            videoFundo.id = 'video-fundo-pista';
+            videoFundo.src = 'assets/Videos/Videocopadomundo.mp4';
+            videoFundo.autoplay = true;
+            videoFundo.loop = true;
+            videoFundo.muted = true;
+            videoFundo.playsInline = true;
+            videoFundo.setAttribute('playsinline', '');
+            videoFundo.setAttribute('preload', 'auto');
+            videoFundo.setAttribute('aria-hidden', 'true');
+            container.prepend(videoFundo);
+        }
+
+        const playPromise = videoFundo.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {});
+        }
+    } else if (videoFundo) {
+        videoFundo.remove();
+    }
+
+    container.insertAdjacentHTML('beforeend', '<div class="linha-chegada"></div>');
     const maiorValor = vendedores.length > 0 ? vendedores[0].valor : 1;
 
     vendedores.forEach((vendedor, index) => {
