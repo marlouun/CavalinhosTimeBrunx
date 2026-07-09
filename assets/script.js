@@ -53,36 +53,37 @@ Chart.register(ChartDataLabels, shieldOnPieSlicesPlugin);
 
 
 function parseCurrency(value) {
-    if (!value || typeof value !== 'string') return 0;
-    let s = value.replace(/R\$|\s/g, '').trim();
+    if (value === null || value === undefined) return 0;
+
+    // Aceita valores vindos como texto do Google Sheets, inclusive com R$, espaço normal,
+    // espaço não-quebrável, aspas, ponto de milhar e vírgula decimal.
+    let s = String(value)
+        .replace(/^\uFEFF/, '')
+        .replace(/["']/g, '')
+        .replace(/R\$/gi, '')
+        .replace(/[\s\u00A0]/g, '')
+        .trim();
+
+    // Remove qualquer coisa que não seja número, vírgula, ponto ou sinal negativo.
+    s = s.replace(/[^0-9,.-]/g, '');
+    if (!s) return 0;
 
     const lastDot = s.lastIndexOf('.');
     const lastComma = s.lastIndexOf(',');
 
-    // No separators, just parse
     if (lastDot === -1 && lastComma === -1) {
         return parseFloat(s) || 0;
     }
 
-    // Determine which is the likely decimal separator based on 2 digits for cents
-    let decimalSeparator = null;
-    if (s.length - lastComma - 1 === 2) {
-        decimalSeparator = ',';
-    } else if (s.length - lastDot - 1 === 2) {
-        decimalSeparator = '.';
-    }
+    // O separador decimal é o último separador que aparece no valor.
+    // Isso cobre tanto 63.824,90 quanto 63,824.90.
+    const decimalSeparator = lastComma > lastDot ? ',' : '.';
 
-    // If we found a likely decimal separator
     if (decimalSeparator === ',') {
-        return parseFloat(s.replace(/\./g, '').replace(',', '.'));
-    }
-    if (decimalSeparator === '.') {
-        return parseFloat(s.replace(/,/g, ''));
+        return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
     }
 
-    // If no clear decimal separator, it's likely an integer with thousands separators.
-    // Just remove all separators.
-    return parseFloat(s.replace(/[.,]/g, ''));
+    return parseFloat(s.replace(/,/g, '')) || 0;
 }
 
 // Configuração dos Links por Mês
@@ -93,8 +94,68 @@ const urlsPorMes = {
     'abr': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=938359542&single=true&output=csv',
     'mai': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=1462491173&single=true&output=csv',
     'jun': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=548050871&single=true&output=csv',
-    'jul': 'assets/data/faturamento_julho_vendedores.csv'
+    // Julho lê direto da aba correta publicada da planilha.
+    'jul': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5Sfa3H9bHcQmlDmKspl0vKiIdYmv1FO8HB_sTINWRUXk05A8M_8EHy7ZAw0Vmt62CqqXX4N54YZ-I/pub?gid=1466453454&single=true&output=csv'
 };
+
+// Mantém os mesmos vendedores da competição de Julho.
+// A planilha pode ter cabeçalho ou outros nomes, mas o dashboard só atualiza o faturamento destes vendedores.
+const vendedoresFixosPorMes = {
+    jul: ['BRUNO', 'DARIELE', 'DANIELE', 'EMILY', 'EVERTON', 'LEANDRA', 'MAEVELIM', 'VITORIA']
+};
+
+const vendedoresRemovidos = new Set(['JANAINA', 'JACIARA']);
+
+function normalizarNomeVendedor(nome) {
+    let n = String(nome || '')
+        .replace(/^\uFEFF/, '')
+        .replace(/"/g, '')
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase();
+
+    if (n === 'BRUNO O.' || n === 'BRUNO O') n = 'BRUNO';
+    if (n === 'LELANDRA') n = 'LEANDRA';
+    return n;
+}
+
+function adicionarCacheBuster(url) {
+    if (!url || url.startsWith('assets/')) return url;
+    const separador = url.includes('?') ? '&' : '?';
+    return `${url}${separador}_cacheBust=${Date.now()}`;
+};
+
+function dividirLinhaCSV(row) {
+    const linha = String(row || '').replace(/\r$/, '');
+
+    // O Google normalmente publica CSV separado por vírgula, mas algumas cópias/exports podem vir
+    // separados por ponto e vírgula. Como os valores em reais têm vírgula decimal, escolhemos
+    // ponto e vírgula quando ele aparece antes da primeira vírgula da linha.
+    const primeiroPontoVirgula = linha.indexOf(';');
+    const primeiraVirgula = linha.indexOf(',');
+    const separador = primeiroPontoVirgula !== -1 && (primeiraVirgula === -1 || primeiroPontoVirgula < primeiraVirgula) ? ';' : ',';
+
+    const regex = separador === ','
+        ? /,(?=(?:(?:[^"]*"){2})*[^"]*$)/
+        : /;(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+
+    return linha
+        .split(regex)
+        .map(col => col.replace(/^"|"$/g, '').trim());
+}
+
+function extrairValorColunaB(cols) {
+    if (!cols || cols.length < 2) return '0';
+
+    // Quando o CSV vem correto do Google, a coluna B inteira chega como uma célula:
+    // A1 = nome, B1 = "R$ 63.824,90".
+    if (cols.length === 2) return cols[1];
+
+    // Defesa extra: se o valor vier sem aspas e a vírgula dos centavos quebrar a linha,
+    // remontamos tudo depois da coluna A como o valor da coluna B.
+    return cols.slice(1).join(',');
+}
 
 let modoAtual = 'jul'; 
 let totalParticipantes = 0;
@@ -177,13 +238,41 @@ function mudarMes(mes) {
 // Função auxiliar para baixar e processar um CSV
 async function baixarCSV(url, mes) {
     try {
-        const response = await fetch(url);
+        const response = await fetch(adicionarCacheBuster(url), { cache: 'no-store' });
         if (!response.ok) throw new Error('Falha ao baixar');
         const data = await response.text();
         const rows = data.split('\n');
         let resultados = [];
 
-        if (mes === 'abr') {
+        if (mes === 'jul') {
+            // Julho usa exatamente a estrutura do print/aba publicada, sem cabeçalho:
+            // A1/B1 = BRUNO O. e valor, A2/B2 = DARIELE e valor, e assim por diante.
+            // Montamos por nome para remover Janaina/Jaciara sem deslocar os valores das linhas seguintes.
+            const vendedoresJulho = vendedoresFixosPorMes.jul;
+            const valoresPorNome = new Map();
+
+            rows.forEach(row => {
+                if (!row || row.trim() === '') return;
+
+                const cols = dividirLinhaCSV(row);
+                const nome = normalizarNomeVendedor(cols[0]);
+                if (!nome || vendedoresRemovidos.has(nome)) return;
+
+                const valorString = extrairValorColunaB(cols);
+                const valorConvertido = parseCurrency(valorString);
+                const valor = Number.isFinite(valorConvertido) ? valorConvertido : 0;
+
+                valoresPorNome.set(nome, (valoresPorNome.get(nome) || 0) + valor);
+            });
+
+            vendedoresJulho.forEach(nomeVendedor => {
+                resultados.push({
+                    nome: nomeVendedor,
+                    valor: valoresPorNome.get(nomeVendedor) || 0
+                });
+            });
+
+        } else if (mes === 'abr') {
             const mapeamentoAbril = {
                 "BRUNO": 0, "DARIELE": 1, "DANIELE": 2, "EMILY": 3,
                 "EVERTON": 4, "LEANDRA": 7, "MAEVELIM": 8, "MARLON": 9,
@@ -194,8 +283,8 @@ async function baixarCSV(url, mes) {
                 let valor = 0; 
                 if (rows[rowIndex]) {
                     const row = rows[rowIndex];
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
+                    const cols = dividirLinhaCSV(row);
+                    let valorString = cols[1] || "0";
                     valor = parseCurrency(valorString);
                 }
                 resultados.push({ nome: nomeVendedor, valor: valor });
@@ -212,8 +301,8 @@ async function baixarCSV(url, mes) {
                 let valor = 0; 
                 if (rows[rowIndex]) {
                     const row = rows[rowIndex];
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
+                    const cols = dividirLinhaCSV(row);
+                    let valorString = cols[1] || "0";
                     valor = parseCurrency(valorString);
                 }
                 resultados.push({ nome: nomeVendedor, valor: valor });
@@ -223,17 +312,13 @@ async function baixarCSV(url, mes) {
             // Lógica genérica para os outros meses
             rows.forEach(row => {
                 if (!row || row.trim() === '') return;
-                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                const cols = dividirLinhaCSV(row);
 
-                let nome = cols[0] ? cols[0].replace(/"/g, '').trim().toUpperCase() : "";
-                let valorString = cols[1] ? cols[1].replace(/"/g, '') : "0";
-
-                if (nome === "BRUNO O.") {
-                    nome = "BRUNO";
-                }
+                let nome = normalizarNomeVendedor(cols[0]);
+                let valorString = cols[1] || "0";
 
                 // Filtro global: Janaina e Jaciara ignoradas em TODOS os meses
-                if (nome === 'JANAINA' || nome === 'JACIARA') {
+                if (vendedoresRemovidos.has(nome)) {
                     return; 
                 }
 
@@ -248,6 +333,20 @@ async function baixarCSV(url, mes) {
                     resultados.push({ nome: nome, valor: valor });
                 }
             });
+
+            const vendedoresFixos = vendedoresFixosPorMes[mes];
+            if (vendedoresFixos) {
+                const valoresPorNome = new Map();
+                resultados.forEach(item => {
+                    const nomeNormalizado = normalizarNomeVendedor(item.nome);
+                    valoresPorNome.set(nomeNormalizado, (valoresPorNome.get(nomeNormalizado) || 0) + item.valor);
+                });
+
+                resultados = vendedoresFixos.map(nome => ({
+                    nome,
+                    valor: valoresPorNome.get(nome) || 0
+                }));
+            }
         }
         return resultados;
     } catch (error) {
@@ -270,10 +369,7 @@ async function fetchData() {
 
             resultadosArrays.forEach(listaMes => {
                 listaMes.forEach(item => {
-                    let nomeNormalizado = item.nome.toUpperCase();
-                    if (nomeNormalizado === 'BRUNO O.') {
-                        nomeNormalizado = 'BRUNO';
-                    }
+                    let nomeNormalizado = normalizarNomeVendedor(item.nome);
                     
                     if (mapaVendas[nomeNormalizado]) {
                         mapaVendas[nomeNormalizado] += item.valor;
@@ -734,7 +830,11 @@ function renderizarCorrida(vendedores) {
             videoFundo.autoplay = true;
             videoFundo.loop = true;
             videoFundo.muted = true;
+            videoFundo.defaultMuted = true;
             videoFundo.playsInline = true;
+            videoFundo.setAttribute('autoplay', '');
+            videoFundo.setAttribute('loop', '');
+            videoFundo.setAttribute('muted', '');
             videoFundo.setAttribute('playsinline', '');
             videoFundo.setAttribute('preload', 'auto');
             videoFundo.setAttribute('aria-hidden', 'true');
@@ -762,7 +862,7 @@ function renderizarCorrida(vendedores) {
                 <div class="trilho">
                     <div class="cavalinho-wrapper" id="cavalinho-${index}" style="left: 0%; cursor: pointer;"
                          onclick="abrirPerfil('${vendedor.nome}', ${vendedor.valor}, ${index})">
-                        <div class="valor-atual">${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumSignificantDigits: 3 })}</div>
+                        <div class="valor-atual">${vendedor.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <img src="${getAvatarUrl(vendedor.nome)}" class="avatar-img" alt="${vendedor.nome}"
                              onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';">
                     </div>
